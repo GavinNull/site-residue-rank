@@ -1,0 +1,18 @@
+# probe: hbond_angle
+# factors: F02 F03 F01
+# signature: 代理量应在 theta=180 取极值，单调衰减至 theta=90 近零。非单调或在 90 度仍有大值 => 该量未捕获方向性，出局。
+# reference_magnitude: 水二聚体 De ~ 5.0 kcal/mol (CCSD(T)/CBS)，180 度构型
+#
+# 通过判据是定性的符号与单调性，不是数值。
+# 但 reference_magnitude 用于量级校准：量级对不上也算不通过。
+file	coordinate	charge
+theta_180.xyz	theta=180	0
+theta_170.xyz	theta=170	0
+theta_160.xyz	theta=160	0
+theta_150.xyz	theta=150	0
+theta_140.xyz	theta=140	0
+theta_130.xyz	theta=130	0
+theta_120.xyz	theta=120	0
+theta_110.xyz	theta=110	0
+theta_100.xyz	theta=100	0
+theta_090.xyz	theta=90	0

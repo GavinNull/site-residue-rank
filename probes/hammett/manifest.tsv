@@ -1,0 +1,16 @@
+# probe: hammett
+# factors: F10 F17
+# signature: 代理量（或其氢键分量）应与 sigma_p 单调，|Pearson r| >= 0.90。对 sigma_p 无响应 => 该量未捕获电子效应，它在判别集上的任何相关性都是伪的。
+# reference_magnitude: 取代苯酚的 pKa 与 sigma_p 的 Hammett rho ~ 2.2 (水中)；气相氢键强度随 sigma_p 单调上升，跨 NMe2->NO2 约 2-3 kcal/mol
+#
+# 通过判据是定性的符号与单调性，不是数值。
+# 但 reference_magnitude 用于量级校准：量级对不上也算不通过。
+file	coordinate	charge
+phenol_NMe2.xyz	sigma_p=-0.83	0
+phenol_OMe.xyz	sigma_p=-0.27	0
+phenol_Me.xyz	sigma_p=-0.17	0
+phenol_H.xyz	sigma_p=0.0	0
+phenol_F.xyz	sigma_p=0.06	0
+phenol_Cl.xyz	sigma_p=0.23	0
+phenol_CN.xyz	sigma_p=0.66	0
+phenol_NO2.xyz	sigma_p=0.78	0

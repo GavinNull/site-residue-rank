@@ -1,0 +1,75 @@
+# 口袋对模板。复制到 pairs/<pair_id>.yaml 填写。
+# 严禁出现任何亲和力数值或强弱措辞 —— 见 CLAUDE.md §1
+
+pair_id: ""            # 形如 KIN-0001，全局唯一
+status: draft           # draft | ready | predicted | revealed | rejected
+subset: main            # main | multi | ic50 | indistinguishable | rejected
+
+facts:
+  ligand:
+    name: ""
+    smiles: ""
+    formal_charge: null
+    protonation_assigned: ""     # 指认依据，如 "pH 7.4, Epik / 文献"
+  side_A:
+    uniprot: ""
+    pdb_id: ""
+    resolution_A: null
+    structure_origin: ""         # crystal_complex | homology_unified | docked_unified
+    construct_notes: ""
+  side_B:
+    uniprot: ""
+    pdb_id: ""
+    resolution_A: null
+    structure_origin: ""
+    construct_notes: ""
+  family: ""                     # Pfam 或家族名，用于 holdout 分组
+  core_differences:              # 每个差异位点一条
+    - position_A: ""             # 如 "Asp189"
+      position_B: ""             # 如 "Asn189"
+      min_heavy_atom_dist_A: null   # Å，侧链重原子到配体
+      min_heavy_atom_dist_B: null
+      contact_atoms: []          # 配体上参与接触的原子编号
+  noncore_differences: 0         # > 8 Å 的残基差异数
+  shape:
+    backbone_rmsd_A: null
+    volume_A3_side_A: null
+    volume_A3_side_B: null
+    usr_similarity: null
+    method: ""                   # 工具 + 版本 + 参数
+  assay:
+    type: ""                     # ITC | SPR | competition | other
+    metric: ""                   # Kd | Ki | IC50
+    temperature_K: null
+    buffer: ""
+    same_paper: null             # bool，是否同一篇同一表
+  water:
+    changed: null                # bool | null(未判定)
+    conserved_sites_A: null      # 核心区保守水数
+    conserved_sites_B: null
+    basis: ""                    # 判定依据
+  protonation_ambiguity: null    # bool，差异位点是否含 His/Asp/Glu/Cys/Tyr
+  provenance:
+    doi: ""
+    table_or_figure: ""
+    extracted_by: ""
+    extracted_on: ""
+
+assessment:
+  comparability:
+    verdict: ""                  # comparable | marginal | not_comparable
+    confidence: ""               # high | medium | low
+    basis: ""
+    concerns: []
+  shape_similarity_judgment:
+    verdict: ""
+    basis: ""
+
+gaps: []                         # 缺失或不确定的信息，逐条写
+
+criteria_check:                  # 由 analysis/check_pair.py 填，不手写
+  C1_shape: null
+  C2_core: null
+  C3_assay: null
+  C4_origin: null
+  C5_family_recorded: null

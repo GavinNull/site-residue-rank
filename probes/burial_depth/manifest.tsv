@@ -1,0 +1,15 @@
+# probe: burial_depth
+# factors: F04 F05 F15
+# signature: 极性基团不变、埋藏加深：F04（脱水代价）应随 n 单调上升，F05（色散）随接触面积单调上升，二者符号相反且应可分离。若代理量对 n 非单调，说明它把两者混在一起且权重不稳。
+# reference_magnitude: 甲烷-甲醇色散约 -0.5 kcal/mol/对；OH 完全脱水代价量级 4-6 kcal/mol
+#
+# 通过判据是定性的符号与单调性，不是数值。
+# 但 reference_magnitude 用于量级校准：量级对不上也算不通过。
+file	coordinate	charge
+burial_n0.xyz	n_shell=0	0
+burial_n1.xyz	n_shell=1	0
+burial_n2.xyz	n_shell=2	0
+burial_n3.xyz	n_shell=3	0
+burial_n4.xyz	n_shell=4	0
+burial_n5.xyz	n_shell=5	0
+burial_n6.xyz	n_shell=6	0

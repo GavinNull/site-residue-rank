@@ -1,0 +1,43 @@
+# probe: cation_pi
+# factors: F06 F08
+# signature: 固定高度下，代理量随 sigma_p 单调减弱（给电子增强）；固定取代基下随高度近指数衰减。强吸电子（NO2）时应接近零或反号（F08 阴离子-π 倾向）。注意：体系净电荷 +1，计算设置必须显式带电荷。
+# reference_magnitude: 苯-NH4+ 结合能约 -19 kcal/mol (气相, h~2.9 A)；取代效应跨 NMe2->NO2 可达 10 kcal/mol 量级
+#
+# 通过判据是定性的符号与单调性，不是数值。
+# 但 reference_magnitude 用于量级校准：量级对不上也算不通过。
+file	coordinate	charge
+NMe2_h26.xyz	sub=NMe2 sigma_p=-0.83 h=2.6	+1
+NMe2_h30.xyz	sub=NMe2 sigma_p=-0.83 h=3.0	+1
+NMe2_h34.xyz	sub=NMe2 sigma_p=-0.83 h=3.4	+1
+NMe2_h38.xyz	sub=NMe2 sigma_p=-0.83 h=3.8	+1
+NMe2_h42.xyz	sub=NMe2 sigma_p=-0.83 h=4.2	+1
+NMe2_h46.xyz	sub=NMe2 sigma_p=-0.83 h=4.6	+1
+NMe2_h50.xyz	sub=NMe2 sigma_p=-0.83 h=5.0	+1
+Me_h26.xyz	sub=Me sigma_p=-0.17 h=2.6	+1
+Me_h30.xyz	sub=Me sigma_p=-0.17 h=3.0	+1
+Me_h34.xyz	sub=Me sigma_p=-0.17 h=3.4	+1
+Me_h38.xyz	sub=Me sigma_p=-0.17 h=3.8	+1
+Me_h42.xyz	sub=Me sigma_p=-0.17 h=4.2	+1
+Me_h46.xyz	sub=Me sigma_p=-0.17 h=4.6	+1
+Me_h50.xyz	sub=Me sigma_p=-0.17 h=5.0	+1
+H_h26.xyz	sub=H sigma_p=0.0 h=2.6	+1
+H_h30.xyz	sub=H sigma_p=0.0 h=3.0	+1
+H_h34.xyz	sub=H sigma_p=0.0 h=3.4	+1
+H_h38.xyz	sub=H sigma_p=0.0 h=3.8	+1
+H_h42.xyz	sub=H sigma_p=0.0 h=4.2	+1
+H_h46.xyz	sub=H sigma_p=0.0 h=4.6	+1
+H_h50.xyz	sub=H sigma_p=0.0 h=5.0	+1
+CN_h26.xyz	sub=CN sigma_p=0.66 h=2.6	+1
+CN_h30.xyz	sub=CN sigma_p=0.66 h=3.0	+1
+CN_h34.xyz	sub=CN sigma_p=0.66 h=3.4	+1
+CN_h38.xyz	sub=CN sigma_p=0.66 h=3.8	+1
+CN_h42.xyz	sub=CN sigma_p=0.66 h=4.2	+1
+CN_h46.xyz	sub=CN sigma_p=0.66 h=4.6	+1
+CN_h50.xyz	sub=CN sigma_p=0.66 h=5.0	+1
+NO2_h26.xyz	sub=NO2 sigma_p=0.78 h=2.6	+1
+NO2_h30.xyz	sub=NO2 sigma_p=0.78 h=3.0	+1
+NO2_h34.xyz	sub=NO2 sigma_p=0.78 h=3.4	+1
+NO2_h38.xyz	sub=NO2 sigma_p=0.78 h=3.8	+1
+NO2_h42.xyz	sub=NO2 sigma_p=0.78 h=4.2	+1
+NO2_h46.xyz	sub=NO2 sigma_p=0.78 h=4.6	+1
+NO2_h50.xyz	sub=NO2 sigma_p=0.78 h=5.0	+1
