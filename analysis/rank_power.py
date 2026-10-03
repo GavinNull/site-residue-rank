@@ -101,6 +101,40 @@ def als_complete(Y, mask, rank, rng, iters=120, ridge=1e-2):
     return U @ V.T
 
 
+def select_rank_kfold(M, obs, rng, max_rank=4, K=5, restarts=3):
+    """K 折 + 重启的定秩。单次留出严重欠功效（同 320 观测：0.82 vs 1.00），
+    故这是方法要求不是细节。见 docs/02 C6「方法要求」。"""
+    idx = np.argwhere(obs)
+    rng.shuffle(idx)
+    folds = np.array_split(idx, K)
+    err = np.zeros(max_rank + 1)
+    for f in folds:
+        trn = obs.copy()
+        for i, j in f:
+            trn[i, j] = False
+        if trn.sum() < max(M.shape):
+            return None
+        Y = decenter(M, trn)
+        for rk in range(max_rank + 1):
+            best = np.inf
+            for _ in range(restarts):
+                P = als_complete(np.where(trn, Y, 0.0), trn, rk, rng, iters=200)
+                e = np.sqrt(np.mean([(Y[i, j] - P[i, j]) ** 2 for i, j in f]))
+                best = min(best, e)
+            err[rk] += best
+    return int(np.argmin(err))
+
+
+def n_params(nr, nc, r):
+    """双因素 + 秩 r 耦合的自由参数数。"""
+    return r * (nr + nc) - r * r + nr + nc - 1
+
+
+def rho(nr, nc, fill, r):
+    """观测/参数比。C6 判据：r=1 vs r>=2 需 rho >= 2.8。"""
+    return fill * nr * nc / n_params(nr, nc, r)
+
+
 def one_trial(nr, nc, fill, r_true, rng, max_rank=4, val_frac=0.25,
               lam3_over_sigma=None):
     M0 = make_matrix(nr, nc, r_true, rng, lam3_over_sigma)
