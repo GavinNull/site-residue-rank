@@ -8,6 +8,6 @@
 
 | 文件 | 对应断言 | 状态 |
 |---|---|---|
-| `reversals.md` | M1.1 可加性被证伪 | 待收集 |
-| `residue-scales.md` | M4.1 侧链 LFER 标度 | 待收集 |
-| `assay-noise.md` | M2.3 σ_exp 取值 | 待收集 |
+| `reversals.md` | M1.1 可加性被证伪 | 待收集，**阻塞于家族选择** |
+| `residue-scales.md` | M4.1 侧链 LFER 标度 | 待收集，**现在就能做** |
+| `assay-noise.md` | M2.3 σ_exp 取值 | 待收集，**现在就能做** |

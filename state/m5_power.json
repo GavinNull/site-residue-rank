@@ -1,0 +1,225 @@
+{
+  "sigma_exp": 0.5,
+  "main_scale": 1.5,
+  "lambdas": [
+    1.5,
+    0.8,
+    0.4
+  ],
+  "nsim": 40,
+  "grid": [
+    {
+      "nr": 5,
+      "nc": 8,
+      "fill": 0.4,
+      "n_obs": 16,
+      "p_r2": 0.2608695652173913,
+      "p_r3": 0.15,
+      "mean_pick_r2": 1.2608695652173914,
+      "mean_pick_r3": 1.45
+    },
+    {
+      "nr": 5,
+      "nc": 8,
+      "fill": 0.6,
+      "n_obs": 24,
+      "p_r2": 0.20512820512820512,
+      "p_r3": 0.1,
+      "mean_pick_r2": 1.4615384615384615,
+      "mean_pick_r3": 1.35
+    },
+    {
+      "nr": 5,
+      "nc": 8,
+      "fill": 0.8,
+      "n_obs": 32,
+      "p_r2": 0.15,
+      "p_r3": 0.15,
+      "mean_pick_r2": 1.675,
+      "mean_pick_r3": 2.0
+    },
+    {
+      "nr": 8,
+      "nc": 8,
+      "fill": 0.4,
+      "n_obs": 25,
+      "p_r2": 0.15,
+      "p_r3": 0.15,
+      "mean_pick_r2": 1.35,
+      "mean_pick_r3": 1.625
+    },
+    {
+      "nr": 8,
+      "nc": 8,
+      "fill": 0.6,
+      "n_obs": 38,
+      "p_r2": 0.1,
+      "p_r3": 0.225,
+      "mean_pick_r2": 1.65,
+      "mean_pick_r3": 1.975
+    },
+    {
+      "nr": 8,
+      "nc": 8,
+      "fill": 0.8,
+      "n_obs": 51,
+      "p_r2": 0.125,
+      "p_r3": 0.15,
+      "mean_pick_r2": 2.025,
+      "mean_pick_r3": 2.0
+    },
+    {
+      "nr": 8,
+      "nc": 12,
+      "fill": 0.4,
+      "n_obs": 38,
+      "p_r2": 0.225,
+      "p_r3": 0.225,
+      "mean_pick_r2": 2.1,
+      "mean_pick_r3": 1.7
+    },
+    {
+      "nr": 8,
+      "nc": 12,
+      "fill": 0.6,
+      "n_obs": 57,
+      "p_r2": 0.0,
+      "p_r3": 0.175,
+      "mean_pick_r2": 1.825,
+      "mean_pick_r3": 1.7
+    },
+    {
+      "nr": 8,
+      "nc": 12,
+      "fill": 0.8,
+      "n_obs": 76,
+      "p_r2": 0.125,
+      "p_r3": 0.125,
+      "mean_pick_r2": 1.125,
+      "mean_pick_r3": 1.4
+    },
+    {
+      "nr": 12,
+      "nc": 12,
+      "fill": 0.4,
+      "n_obs": 57,
+      "p_r2": 0.125,
+      "p_r3": 0.175,
+      "mean_pick_r2": 1.725,
+      "mean_pick_r3": 1.975
+    },
+    {
+      "nr": 12,
+      "nc": 12,
+      "fill": 0.6,
+      "n_obs": 86,
+      "p_r2": 0.125,
+      "p_r3": 0.075,
+      "mean_pick_r2": 1.7,
+      "mean_pick_r3": 1.2
+    },
+    {
+      "nr": 12,
+      "nc": 12,
+      "fill": 0.8,
+      "n_obs": 115,
+      "p_r2": 0.3,
+      "p_r3": 0.025,
+      "mean_pick_r2": 1.375,
+      "mean_pick_r3": 1.2
+    },
+    {
+      "nr": 12,
+      "nc": 20,
+      "fill": 0.4,
+      "n_obs": 96,
+      "p_r2": 0.025,
+      "p_r3": 0.1,
+      "mean_pick_r2": 1.725,
+      "mean_pick_r3": 0.925
+    },
+    {
+      "nr": 12,
+      "nc": 20,
+      "fill": 0.6,
+      "n_obs": 144,
+      "p_r2": 0.15,
+      "p_r3": 0.025,
+      "mean_pick_r2": 0.975,
+      "mean_pick_r3": 0.975
+    },
+    {
+      "nr": 12,
+      "nc": 20,
+      "fill": 0.8,
+      "n_obs": 192,
+      "p_r2": 0.45,
+      "p_r3": 0.1,
+      "mean_pick_r2": 1.625,
+      "mean_pick_r3": 1.55
+    },
+    {
+      "nr": 20,
+      "nc": 20,
+      "fill": 0.4,
+      "n_obs": 160,
+      "p_r2": 0.025,
+      "p_r3": 0.0,
+      "mean_pick_r2": 0.7,
+      "mean_pick_r3": 0.575
+    },
+    {
+      "nr": 20,
+      "nc": 20,
+      "fill": 0.6,
+      "n_obs": 240,
+      "p_r2": 0.35,
+      "p_r3": 0.0,
+      "mean_pick_r2": 1.4,
+      "mean_pick_r3": 1.025
+    },
+    {
+      "nr": 20,
+      "nc": 20,
+      "fill": 0.8,
+      "n_obs": 320,
+      "p_r2": 0.825,
+      "p_r3": 0.125,
+      "mean_pick_r2": 1.825,
+      "mean_pick_r3": 2.0
+    }
+  ],
+  "sensitivity_lambda3": [
+    {
+      "ratio": 0.5,
+      "p_correct": 0.05,
+      "mean_pick": 1.625
+    },
+    {
+      "ratio": 0.8,
+      "p_correct": 0.0,
+      "mean_pick": 1.05
+    },
+    {
+      "ratio": 1.0,
+      "p_correct": 0.025,
+      "mean_pick": 1.35
+    },
+    {
+      "ratio": 1.5,
+      "p_correct": 0.05,
+      "mean_pick": 0.925
+    },
+    {
+      "ratio": 2.0,
+      "p_correct": 0.1,
+      "mean_pick": 1.225
+    },
+    {
+      "ratio": 3.0,
+      "p_correct": 0.075,
+      "mean_pick": 1.15
+    }
+  ],
+  "provenance": "SIGMA_EXP = 0.5: docs/05 M2.3\u3002\u5f85 evidence/assay-noise.md \u7528\u6587\u732e\u503c\u66ff\u6362\u3002\nMAIN_SCALE = 1.5: \u5355\u70b9\u7a81\u53d8 ddG \u7684\u5178\u578b\u5206\u5e03\u5bbd\u5ea6\u91cf\u7ea7\u3002\u5f85\u6587\u732e\u786e\u8ba4\u3002\nLAMBDAS: \u5f62\u72b6\uff08\u9012\u51cf\u3001\u7b2c\u4e09\u9879\u843d\u5728\u566a\u58f0\u4ee5\u4e0b\uff09\u6765\u81ea Hammett \u7cfb\u8c31\u7684\u5148\u9a8c\n  \u2014\u2014 \u79e9 1 \u4e0d\u591f\u3001\u79e9 2 \u662f\u4e3b\u8981\u4fee\u6b63\u3001\u79e9 3 \u5904\u4e8e\u53ef\u5bdf\u89c9\u8fb9\u7f18\u3002\n  \u7edd\u5bf9\u503c\u662f\u91cf\u7ea7\u4f30\u8ba1\uff0c\u4e0d\u662f\u6d4b\u91cf\u503c\u3002\n\u7ed3\u8bba\u5bf9 LAMBDAS \u7684\u7edd\u5bf9\u5c3a\u5ea6\u654f\u611f\uff0c\u6545\u811a\u672c\u540c\u65f6\u626b lambda_3 / sigma \u6bd4\u503c\u3002"
+}
