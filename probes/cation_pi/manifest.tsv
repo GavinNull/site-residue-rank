@@ -1,7 +1,11 @@
 # probe: cation_pi
 # factors: F06 F08
 # signature: 固定高度下，代理量随 sigma_p 单调减弱（给电子增强）；固定取代基下随高度近指数衰减。强吸电子（NO2）时应接近零或反号（F08 阴离子-π 倾向）。注意：体系净电荷 +1，计算设置必须显式带电荷。
-# reference_magnitude: 苯-NH4+ 结合能约 -19 kcal/mol (气相, h~2.9 A)；取代效应跨 NMe2->NO2 可达 10 kcal/mol 量级
+# reference_magnitude [UNVERIFIED]: 苯-NH4+ 结合能约 -19 kcal/mol (气相, h~2.9 A)；取代效应跨 NMe2->NO2 可达 10 kcal/mol 量级
+# provenance: 上面的 reference_magnitude 目前**没有文献来源**，是凭记忆写的。
+#   按 CLAUDE.md §3 它不该被当作数据；而 §8 又把量级对照列为通过判据，
+#   这是一个自我不一致。在取得来源之前，量级校准只能作为**提示**，
+#   不能作为淘汰依据。待办见 evidence/probe-reference-magnitudes.md
 #
 # 通过判据是定性的符号与单调性，不是数值。
 # 但 reference_magnitude 用于量级校准：量级对不上也算不通过。

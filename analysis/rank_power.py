@@ -28,13 +28,24 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ---- 现实效应量级（kcal/mol）。来源与理由见下方 PROVENANCE ----
-SIGMA_EXP = 0.5          # 实验 ddG 误差，docs/05 M2.3
+# 2026-10-03 更新：0.5 原为占位值，已按 evidence/assay-noise.md 替换。
+# 矩阵元是 ΔG 量，故用**单次测量**误差；成对量（0.91/1.10）是它的 sqrt2 倍。
+SIGMA_SINGLE = {
+    "same_source": 0.35,     # 单篇/单实验室重复，Kalliokoski Fig9 / Brown 2009
+    "cross_mixed": 0.64,     # Hahn 2022 §4.5.3 社区推荐 + Moonshot 实测
+    "cross_biophys": 0.78,   # = Ross 2023 Table4 的成对 1.10 / sqrt2
+}
+SIGMA_EXP = SIGMA_SINGLE["cross_mixed"]   # 默认取跨文献混合
 MAIN_SCALE = 1.5         # 行/列主效应的标准差
 LAMBDAS = [1.5, 0.8, 0.4]   # 耦合项奇异值，递减
 # lambda_3 = 0.4 < sigma_exp = 0.5 —— 这正是难的情形，不是人为放水
 
 PROVENANCE = """
-SIGMA_EXP = 0.5: docs/05 M2.3。待 evidence/assay-noise.md 用文献值替换。
+SIGMA_EXP: 已由 evidence/assay-noise.md 的文献值替换（原 0.5 为占位值）。
+  注意：rho 判据（r=1 vs r>=2 需 rho >= 2.8，约 320 测点）**不依赖 sigma**,
+  故 M5.4 的主结论不受此次替换影响。
+  但 r=3 的 BBP 余量依赖 lambda_3/sigma，sigma 从 0.5 升到 0.64-0.78 后
+  r=3 的可分辨性进一步变差 —— 这强化了把 M5 首要问题设为二元的理由（D-013）。
 MAIN_SCALE = 1.5: 单点突变 ddG 的典型分布宽度量级。待文献确认。
 LAMBDAS: 形状（递减、第三项落在噪声以下）来自 Hammett 系谱的先验
   —— 秩 1 不够、秩 2 是主要修正、秩 3 处于可察觉边缘。

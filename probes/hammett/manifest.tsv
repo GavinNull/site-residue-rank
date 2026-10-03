@@ -1,7 +1,11 @@
 # probe: hammett
 # factors: F10 F17
 # signature: 代理量（或其氢键分量）应与 sigma_p 单调，|Pearson r| >= 0.90。对 sigma_p 无响应 => 该量未捕获电子效应，它在判别集上的任何相关性都是伪的。
-# reference_magnitude: 取代苯酚的 pKa 与 sigma_p 的 Hammett rho ~ 2.2 (水中)；气相氢键强度随 sigma_p 单调上升，跨 NMe2->NO2 约 2-3 kcal/mol
+# reference_magnitude [UNVERIFIED]: 取代苯酚的 pKa 与 sigma_p 的 Hammett rho ~ 2.2 (水中)；气相氢键强度随 sigma_p 单调上升，跨 NMe2->NO2 约 2-3 kcal/mol
+# provenance: 上面的 reference_magnitude 目前**没有文献来源**，是凭记忆写的。
+#   按 CLAUDE.md §3 它不该被当作数据；而 §8 又把量级对照列为通过判据，
+#   这是一个自我不一致。在取得来源之前，量级校准只能作为**提示**，
+#   不能作为淘汰依据。待办见 evidence/probe-reference-magnitudes.md
 #
 # 通过判据是定性的符号与单调性，不是数值。
 # 但 reference_magnitude 用于量级校准：量级对不上也算不通过。
