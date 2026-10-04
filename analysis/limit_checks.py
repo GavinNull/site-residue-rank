@@ -156,11 +156,21 @@ def _a_born_q2(fn):
 
 
 def _a_born_eps(fn):
-    # (1 - 1/eps)：随 eps 上升而单调上升并饱和
-    mono = is_monotone(fn, "eps", [1.5, 2.0, 4.0, 10.0, 40.0], +1)
-    sat = abs(fn(**cfg(eps=40.0)) - fn(**cfg(eps=80.0)))
-    ref = abs(fn(**cfg(eps=40.0)))
-    return (mono and sat < 0.05 * ref), f"单调={mono}, 高 eps 饱和度 ={sat / ref if ref else float('nan'):.4f}"
+    """去溶剂化代价 ~ (1/eps_pocket - 1/eps_water)：随 eps_pocket **下降**，
+    并在 eps_pocket -> eps_water 时趋于零。
+
+    早先这条写成「随 eps 单调上升」，那是 Born **溶剂化能** 的行为
+    （~ 1 - 1/eps），不是去溶剂化代价的。而当时 MP-1 的实现也用了
+    真空参考态，两个错误互相抵消、一起通过了检验。
+    这是最危险的失效模式，记在此处。
+    """
+    mono = is_monotone(fn, "eps", [2.0, 4.0, 10.0, 40.0], -1)
+    near_w = abs(fn(**cfg(eps=78.4)))
+    ref = abs(fn(**cfg(eps=4.0)))
+    vanish = near_w < 0.05 * ref if ref else False
+    return (mono and vanish), (f"随 eps 下降={mono}, "
+                               f"eps->eps_water 时趋零={vanish} "
+                               f"({near_w:.3g} vs {ref:.3g})")
 
 
 def _a_halogen_angle(fn):
@@ -206,7 +216,7 @@ ASSERTIONS = [
     ("F03", "供受体互补/失配反号",   _a_hb_mismatch),
     ("F04", "脱水随埋藏单调",       _a_born_burial),
     ("F04", "脱水 ~ q^2",          _a_born_q2),
-    ("F04", "脱水 (1-1/eps) 饱和",  _a_born_eps),
+    ("F04", "脱水 ~1/eps_p-1/eps_w", _a_born_eps),
     ("F05", "色散 1/r^6",          _a_dispersion_r),
     ("F05", "色散对电性不敏感",      _a_dispersion_sigma),
     ("F06", "阳离子-pi 远场 -3",    _a_cationpi_far),

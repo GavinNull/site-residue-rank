@@ -48,7 +48,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 COUL = 332.06  # kcal/mol * A / e^2
 
-# ---- 侧链多极参数（相对 Ala）。目前是占位值，待从侧链类似物计算 ----
+# ---- 侧链多极参数（相对 Ala） ----
+# dalpha: **已有实验来源**，由 cache/sidechain_alpha.tsv 覆盖下面的占位值
+#   （McMeekin 1964 实验折射度 -> Lorentz-Lorenz，经原子折射度加和验证，
+#    17/17 比值 0.94-1.12 均值 1.021；CYS 异常已用加和值替代）
+#   见 analysis/sidechain_polarizability.py
+# dq: 形式电荷，平凡且精确
+# dmu, dTheta: **仍是占位值**，待侧链类似物的气相多极矩（已委派检索）
 # dq: 形式电荷变化 (e)
 # dmu: 偶极大小 (D)，取向沿 Cbeta->末端轴
 # dTheta: 四极迹无关分量的量级 (D*A)，芳香侧链为主
@@ -98,6 +104,31 @@ def channels_in_range(contact_dist_A):
     故任何候选数据集的秩都是可预注册的预测，不是事后拟合。
     """
     return [c for c, rmax in CHANNEL_RANGE_A.items() if contact_dist_A <= rmax]
+
+
+def _load_alpha():
+    """用实验推出的 Δα 覆盖占位值。缺文件则保留占位并告警。"""
+    path = os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "cache", "sidechain_alpha.tsv")
+    if not os.path.exists(path):
+        return False, {}
+    flags = {}
+    with open(path) as f:
+        for line in f:
+            if line.startswith("#") or line.startswith("residue"):
+                continue
+            parts = line.split()
+            if len(parts) < 5:
+                continue
+            res, _mr, _a, a_rel, flag = parts[0], *parts[1:5]
+            if res in RESIDUE_MULTIPOLES:
+                q, mu, th, _ = RESIDUE_MULTIPOLES[res]
+                RESIDUE_MULTIPOLES[res] = (q, mu, th, float(a_rel))
+                flags[res] = flag
+    return True, flags
+
+
+ALPHA_LOADED, ALPHA_FLAGS = _load_alpha()
 
 
 def channels_activated(residue_pairs):
@@ -181,9 +212,36 @@ def ch_induction(dalpha, q_lig, r, eps, **kw):
     return -0.5 * dalpha * (E_point(q_lig, r, eps) / COUL) ** 2 * COUL
 
 
-def desolvation(dq, burial, eps, a_eff=2.0, **kw):
-    """Born: dq^2 (1 - 1/eps) / (2 a) * burial。对 dq **二次** -> 进 a(P)。见 P3。"""
-    return COUL * dq ** 2 * (1.0 - 1.0 / eps) / (2.0 * a_eff) * burial
+EPS_WATER = 78.4
+
+
+def desolvation(q_x, q_y, burial, eps, a_eff=2.0, eps_water=EPS_WATER, **kw):
+    """Born 代价之差：(q_Y^2 - q_X^2)(1 - 1/eps)/(2a) * burial。
+
+    **必须是两个代价之差，不是电荷差的平方。** 早先写成 (q_Y - q_X)^2，
+    于是 Asp(-1)->Asn(0) 被算成埋藏代价**增加**，而实际是减少
+    （不再需要埋一个带电基团）。该错误使 LYS->MET 给出 +51 kcal/mol
+    这种不可能的量级。
+
+    注意 analysis/limit_checks.py 的 F04 断言抓不到这个：它测的是
+    相对 Ala(q=0) 的情形，那里 (q_Y-0)^2 与 q_Y^2-0^2 恰好重合。
+    是物理量级的抽查发现的。
+
+    **参考态必须是水，不是真空。** Born 溶剂化能在介质 eps 中是
+    -(q^2/2a)(1 - 1/eps)；而去溶剂化代价是从水转移到口袋：
+        (q^2/2a)(1/eps_pocket - 1/eps_water)
+    早先用 (1 - 1/eps) 即以真空为参考，使量级偏大 3.2 倍
+    （0.75 vs 0.237，eps_pocket=4）。
+
+    这个错误与 limit_checks 的 F04 eps 断言**互相抵消**：
+    那条断言测「随 eps 单调上升」，是溶剂化能的行为；
+    去溶剂化代价应随 eps_pocket 上升而**下降**。两个错误一起通过了检验。
+    断言已同步修正。
+
+    对残基电荷**二次**，且不含配体量 -> 进 a(P) 主效应，不进耦合项（P3）。
+    """
+    return COUL * (q_y ** 2 - q_x ** 2) \
+        * (1.0 / eps - 1.0 / eps_water) / (2.0 * a_eff) * burial
 
 
 def mp1(residue_x, residue_y, *, q_lig=-1.0, r=4.0, theta=180.0, eps=4.0,
@@ -196,7 +254,7 @@ def mp1(residue_x, residue_y, *, q_lig=-1.0, r=4.0, theta=180.0, eps=4.0,
             + ch_dipole(dmu, q_lig, r, eps, theta)
             + ch_quadrupole(dth, q_lig, r, eps)
             + ch_induction(dal, q_lig, r, eps)
-            + desolvation(dq, burial, eps))
+            + desolvation(xq, yq, burial, eps))
 
 
 # ---------- 对接 limit_checks 的因子接口 ----------
@@ -211,7 +269,8 @@ def as_factor_dict():
         "F01": lambda r, q1, q2, eps, **kw: ch_monopole(q1, q2, r, eps),
         "F02": lambda r, theta, q2, eps, **kw: ch_dipole(
             3.7, q2, r, eps, theta),
-        "F04": lambda q1, burial, eps, **kw: desolvation(q1, burial, eps),
+        # 相对 Ala(q=0)：q_Y^2 - 0 = q1^2，故断言仍适用
+        "F04": lambda q1, burial, eps, **kw: desolvation(0.0, q1, burial, eps),
         "F05": lambda r, q2, eps, sigma_p, **kw: ch_induction(
             4.6, q2, r, eps),
         # 四极 + 穿透：纯多极给不出近场的陡降（实测 -3.00，需 < -3.5）
@@ -227,6 +286,12 @@ def main():
     print("=" * 74)
     print("MP-1 多极通道代理量：撞解析断言")
     print("=" * 74)
+    print(f"\n[输入状态]")
+    print(f"   Δq      形式电荷，精确")
+    print(f"   Δα      {'实验来源已载入' if ALPHA_LOADED else '占位值（缺 cache 文件）'}"
+          f"  ({sum(1 for v in ALPHA_FLAGS.values() if v == 'ok')}/20 标 ok, "
+          f"{sum(1 for v in ALPHA_FLAGS.values() if v != 'ok')} 个有标记)")
+    print(f"   Δμ, ΔΘ  占位值，待气相多极矩检索")
 
     print("\n[P1] 秩 = 被激活的多极通道数（可在真实数据集上直接数出来）")
     cases = [
