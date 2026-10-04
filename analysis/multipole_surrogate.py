@@ -54,7 +54,14 @@ COUL = 332.06  # kcal/mol * A / e^2
 #    17/17 比值 0.94-1.12 均值 1.021；CYS 异常已用加和值替代）
 #   见 analysis/sidechain_polarizability.py
 # dq: 形式电荷，平凡且精确
-# dmu, dTheta: **仍是占位值**，待侧链类似物的气相多极矩（已委派检索）
+# dmu: **已有实验来源**，由 cache/sidechain_dipole.tsv 覆盖（带质量等级）
+#   侧链类似物的气相偶极矩，多数为微波/Stark 级。ARG 无实验值。
+# dTheta: **只有一个实验锚点** —— 苯的 Theta_zz = -8.70 +- 0.5 D*A
+#   (Battaglia, Buckingham & Williams, Chem Phys Lett 78, 421 (1981))。
+#   苯因 mu=0 故无迹四极矩与原点无关，这正是它能当基准的原因。
+#   其余芳香分子（甲苯/苯酚/咪唑/吲哚）**无实验四极矩**，
+#   且它们有偶极矩 => 无迹四极矩依赖原点，必须同时声明原点。
+#   本模型用「苯锚点 x pi 电子数比」外推，这是**一个假设**，见 docs/07 §11。
 # dq: 形式电荷变化 (e)
 # dmu: 偶极大小 (D)，取向沿 Cbeta->末端轴
 # dTheta: 四极迹无关分量的量级 (D*A)，芳香侧链为主
@@ -106,6 +113,40 @@ def channels_in_range(contact_dist_A):
     return [c for c, rmax in CHANNEL_RANGE_A.items() if contact_dist_A <= rmax]
 
 
+# 苯的实验四极矩，唯一的实验锚点
+THETA_BENZENE_DA = -8.70        # D*A, Theta_zz, 质心原点（mu=0 故原点无关）
+# pi 电子数比（相对苯）—— **这不是实验值，是本模型的外推假设**
+PI_RATIO = {"PHE": 1.0, "TYR": 1.0, "TRP": 10.0 / 6.0, "HIS": 1.0}
+# HIS 标低置信：咪唑有大偶极且 N 孤对显著改变四极矩的性质
+
+
+def _load_dipole():
+    """载入侧链偶极矩（气相实验值，带质量等级）。
+
+    C 级（仅摘要/二手引用）不写入数值，置 None 并记录 —— 否则
+    未核实的数会和微波级的数混在一起，事后分不开。
+    """
+    path = os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "cache", "sidechain_dipole.tsv")
+    if not os.path.exists(path):
+        return False, {}, {}
+    mu, grade = {}, {}
+    with open(path) as f:
+        for line in f:
+            if line.startswith("#") or line.startswith("residue"):
+                continue
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) < 4:
+                continue
+            res, _analog, val, g = parts[0], parts[1], parts[2], parts[3]
+            grade[res] = g
+            if val == "NA" or g in ("X",):
+                mu[res] = None
+            else:
+                mu[res] = float(val)
+    return True, mu, grade
+
+
 def _load_alpha():
     """用实验推出的 Δα 覆盖占位值。缺文件则保留占位并告警。"""
     path = os.path.join(os.path.dirname(os.path.dirname(
@@ -129,6 +170,25 @@ def _load_alpha():
 
 
 ALPHA_LOADED, ALPHA_FLAGS = _load_alpha()
+
+
+def _apply_dipole_and_quadrupole():
+    loaded, mu, grade = _load_dipole()
+    if not loaded:
+        return False, {}, {}
+    for res, m in mu.items():
+        if res not in RESIDUE_MULTIPOLES:
+            continue
+        q, _old_mu, _old_th, al = RESIDUE_MULTIPOLES[res]
+        # **缺失值不置零。** 置零不是中立的，它断言「该侧链没有偶极矩」，
+        # 而丙酰胺、甲基胍显然都有。未核实/无值者存 None，
+        # 由 mp1() 在用到时报错，而不是悄悄算出一个数。
+        th = abs(THETA_BENZENE_DA) * PI_RATIO.get(res, 0.0)
+        RESIDUE_MULTIPOLES[res] = (q, m, th, al)
+    return True, mu, grade
+
+
+MU_LOADED, MU_VALUES, MU_GRADES = _apply_dipole_and_quadrupole()
 
 
 def channels_activated(residue_pairs):
@@ -244,17 +304,41 @@ def desolvation(q_x, q_y, burial, eps, a_eff=2.0, eps_water=EPS_WATER, **kw):
         * (1.0 / eps - 1.0 / eps_water) / (2.0 * a_eff) * burial
 
 
-def mp1(residue_x, residue_y, *, q_lig=-1.0, r=4.0, theta=180.0, eps=4.0,
+class UndefinedChannel(Exception):
+    """某个通道的输入没有可用实验值。不返回数，不置零。"""
+
+
+# 通道专属有效介电。**不是拟合自由度，是物理上不同的屏蔽机制。**
+#   带电通道（单极 + Born 去溶剂化）被溶剂重组与反离子长程屏蔽
+#     -> 文献里蛋白内电荷-电荷的有效介电常用 10-40（Warshel 等）
+#   偶极/四极/诱导是短程的，看到的是局部低介电环境 -> eps ~ 4
+# 实证：eps_charged=4 时 ASP->ASN 给 -30.6 kcal/mol，偏大约 10 倍；
+#       eps_charged=40 给 -2.6，落进电荷中和突变的实验范围 1-4。
+EPS_CHARGED_DEFAULT = 40.0
+EPS_LOCAL_DEFAULT = 4.0
+
+
+def mp1(residue_x, residue_y, *, q_lig=-1.0, r=4.0, theta=180.0,
+        eps=EPS_LOCAL_DEFAULT, eps_charged=EPS_CHARGED_DEFAULT,
         burial=0.5):
-    """MP-1 代理量。对 (r, theta, q_lig, eps, burial) 全部解析可微。"""
+    """MP-1 代理量。对 (r, theta, q_lig, eps, burial) 全部解析可微。
+
+    若任一通道的输入无可用实验值（如 ARG 的偶极矩，或 GLN 的仅摘要级值），
+    抛 UndefinedChannel 而**不是**用 0 代替 —— 置零会断言该侧链无偶极矩。
+    """
     xq, xmu, xth, xal = RESIDUE_MULTIPOLES[residue_x]
     yq, ymu, yth, yal = RESIDUE_MULTIPOLES[residue_y]
+    for res, v in ((residue_x, xmu), (residue_y, ymu)):
+        if v is None:
+            raise UndefinedChannel(
+                f"{res} 的偶极矩无可用实验值"
+                f"（等级 {MU_GRADES.get(res, '?')}）—— 该对不可计算")
     dq, dmu, dth, dal = yq - xq, ymu - xmu, yth - xth, yal - xal
-    return (ch_monopole(dq, q_lig, r, eps)
+    return (ch_monopole(dq, q_lig, r, eps_charged)
             + ch_dipole(dmu, q_lig, r, eps, theta)
             + ch_quadrupole(dth, q_lig, r, eps)
             + ch_induction(dal, q_lig, r, eps)
-            + desolvation(xq, yq, burial, eps))
+            + desolvation(xq, yq, burial, eps_charged))
 
 
 # ---------- 对接 limit_checks 的因子接口 ----------
@@ -291,7 +375,18 @@ def main():
     print(f"   Δα      {'实验来源已载入' if ALPHA_LOADED else '占位值（缺 cache 文件）'}"
           f"  ({sum(1 for v in ALPHA_FLAGS.values() if v == 'ok')}/20 标 ok, "
           f"{sum(1 for v in ALPHA_FLAGS.values() if v != 'ok')} 个有标记)")
-    print(f"   Δμ, ΔΘ  占位值，待气相多极矩检索")
+    if MU_LOADED:
+        from collections import Counter
+        c = Counter(MU_GRADES.values())
+        print(f"   Δμ      实验来源已载入  "
+              f"A级(微波/对称性) {c.get('A', 0)}, B级(介电/同系物) {c.get('B', 0)}, "
+              f"C级(摘要未核,置零) {c.get('C', 0)}, 无值 {c.get('X', 0)}")
+        noexp = [r for r, g in MU_GRADES.items() if g == "X"]
+        print(f"           无实验值: {noexp}")
+    else:
+        print(f"   Δμ      占位值（缺 cache 文件）")
+    print(f"   ΔΘ      **仅一个实验锚点**（苯 Theta_zz = {THETA_BENZENE_DA} D*A）")
+    print(f"           其余芳香靠 pi 电子数比外推 —— 这是假设，不是数据")
 
     print("\n[P1] 秩 = 被激活的多极通道数（可在真实数据集上直接数出来）")
     cases = [
