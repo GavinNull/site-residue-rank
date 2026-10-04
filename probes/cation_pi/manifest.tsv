@@ -8,7 +8,7 @@
 #   不能作为淘汰依据。待办见 evidence/probe-reference-magnitudes.md
 #
 # 通过判据是定性的符号与单调性，不是数值。
-# 但 reference_magnitude 用于量级校准：量级对不上也算不通过。
+# reference_magnitude 取得来源后才可用于淘汰；见上方 provenance。
 file	coordinate	charge
 NMe2_h26.xyz	sub=NMe2 sigma_p=-0.83 h=2.6	+1
 NMe2_h30.xyz	sub=NMe2 sigma_p=-0.83 h=3.0	+1

@@ -12,7 +12,8 @@
 | F02 | `hbond_geometry` | 中性氢键的距离与方向性 | D–H···A 角在 180° 附近取极值，90° 衰减到近零 | `probes/hbond_angle` |
 | F03 | `hbond_mismatch` | 供体/受体身份互换导致的失配 | 供体换受体时**反号** | `probes/hbond_angle` |
 | F04 | `desolvation_polar` | 极性基团脱水代价 | 极性相同、埋藏加深 → 单调上升 | `probes/burial_depth` |
-| F05 | `dispersion_burial` | 色散 + 疏水埋藏 | 随接触面积单调；对电性取代不敏感 | `probes/burial_depth` |
+| F05a | `induction` | 电荷诱导偶极 −½Δα\|E\|² | **1/r⁴**；依赖配体电荷态；恒为负 | `probes/burial_depth` |
+| F05b | `dispersion` | London 色散 | **1/r⁶**；需两边极化率；与配体电荷**无关** | `probes/burial_depth` |
 | F06 | `cation_pi` | 阳离子-π | 随环上给电子取代增强，吸电子减弱；随高度指数衰减 | `probes/cation_pi` |
 | F07 | `pi_stacking` | π-π 几何（平行位移 vs T 形） | 在 3.4–3.8 Å 平行位移处取极值 | 待建 |
 | F08 | `anion_pi` | 缺电子芳环-阴离子 | 仅在强吸电子取代时为正 | `probes/cation_pi`（反向） |
@@ -28,6 +29,16 @@
 | F18 | `hbond_cooperativity` | 氢键网络协同极化 | 网络延长时非加和；加和模型必然低估 | 待建 |
 | F19 | `weak_hbond` | CH···O / CH···π | 量级应在 0.3–1.0 kcal/mol，超出即量级错 | 待建 |
 | F20 | `chalcogen_aromatic` | 硫-芳香 / 硫族键 | Met/Cys 换 Leu/Ala 时为正 | 待建 |
+
+## F05 的拆分（2026-10-04，由物理抓出）
+
+原 F05 `dispersion_burial` 把两个不同通道混为一谈：
+诱导项是 1/r⁴ 且依赖配体电荷态，London 色散是 1/r⁶ 且与电荷无关。
+`analysis/limit_checks.py` 的 F05 断言要求 −6，而 MP-1 的诱导项给 −4 ——
+这条失败是**正确的失败**。详见 `docs/07-mp1-multipole-channels.md` 第 7 节。
+
+声明实现 F05a 的候选量须过 1/r⁴ 与电荷态依赖；
+声明 F05b 的须过 1/r⁶ 与电荷无关性。**不得再声明裸 F05。**
 
 ## 使用约定
 

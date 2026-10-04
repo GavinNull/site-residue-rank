@@ -63,32 +63,72 @@ def make(nr, nc, rng, lam2=None):
     return M
 
 
-def cv_err(M, obs, rank, rng, K=4, restarts=2, iters=150):
-    idx = np.argwhere(obs); rng.shuffle(idx)
-    folds = np.array_split(idx, K)
-    tot, cnt = 0.0, 0
-    for f in folds:
-        trn = obs.copy()
-        for i, j in f:
-            trn[i, j] = False
-        if trn.sum() < max(M.shape):
-            return None
-        Y = decenter(M, trn)
-        best = np.inf
-        for _ in range(restarts):
-            P = als_complete(np.where(trn, Y, 0.0), trn, rank, rng, iters=iters)
-            e = np.mean([(Y[i, j] - P[i, j]) ** 2 for i, j in f])
-            best = min(best, e)
-        tot += best * len(f); cnt += len(f)
-    return np.sqrt(tot / cnt) if cnt else None
+def als_guarded(Y, mask, rank, rng, iters=200, ridge=0.0):
+    """带正则与欠定行列保护的 ALS。
+
+    为什么需要：原先直接用 rank_power.als_complete（ridge=1e-2）做留出预测，
+    某行/列在训练集里观测太少时 U[i] 估计极不稳定，**留出预测会爆**
+    （实测单 fold 的 e1 达 17.6，而训练 RMSE 只有 0.78）。
+    统计量被几个爆点主导，导致功效不随样本量上升、低噪声反而更差
+    —— 爆掉由条件数驱动，不由噪声驱动。
+    """
+    nr, nc = Y.shape
+    if rank == 0:
+        return np.zeros_like(Y)
+    U = rng.normal(0, 0.1, (nr, rank))
+    V = rng.normal(0, 0.1, (nc, rank))
+    I = np.eye(rank) * max(ridge, 1e-8)
+    # 欠定保护：训练观测数 < rank+1 的行/列，因子固定为 0（即预测去中心均值）
+    row_ok = mask.sum(axis=1) >= rank + 1
+    col_ok = mask.sum(axis=0) >= rank + 1
+    for _ in range(iters):
+        for i in range(nr):
+            if not row_ok[i]:
+                U[i] = 0.0
+                continue
+            m = mask[i]
+            Vm = V[m]
+            U[i] = np.linalg.solve(Vm.T @ Vm + I, Vm.T @ Y[i, m])
+        for j in range(nc):
+            if not col_ok[j]:
+                V[j] = 0.0
+                continue
+            m = mask[:, j]
+            Um = U[m]
+            V[j] = np.linalg.solve(Um.T @ Um + I, Um.T @ Y[m, j])
+    return U @ V.T
 
 
-def statistic(M, obs, rng):
-    e1 = cv_err(M, obs, 1, rng)
-    e2 = cv_err(M, obs, 2, rng)
-    if e1 is None or e2 is None:
-        return None
-    return e1 - e2
+def spectral_stat(M, obs, rng, iters=400, restarts=4):
+    """统计量：去主效应 -> 拟合秩1 -> 残差矩阵的最大奇异值。
+
+    为什么不用「CV(秩1) - CV(秩2)」：
+      (a) 带 ridge 的 ALS 有**尺度不定性**，正则同时作用在两个因子上，
+          收缩量依赖数据，造成系统性欠拟合 —— 实测 H0 下 e1 达 1.3-1.5,
+          而理论噪声底只有 0.64；
+      (b) 欠定行列会让留出预测爆掉（实测单 fold e1 = 17.6，
+          而同时训练 RMSE 只有 0.78），统计量被几个爆点主导；
+      (c) 重启若按留出误差选是测试集泄露，抬高零分布右尾。
+    谱统计量不需要 CV 也不需要 ridge，上述三条全部规避。
+
+    这对应 AMMI / 双因素乘性模型里「决定乘性项个数」的经典问题
+    （Gollob、Cornelius 检验及其 bootstrap 版本）。
+    """
+    Y = decenter(M, obs)
+    Yz = np.where(obs, Y, 0.0)
+    # 多次重启，按**训练**（样本内）残差选最好的那次。
+    # 必须这样做：秩1 的 ALS 偶尔落进坏的局部极小，残差里就留下一部分
+    # 秩1 结构，使统计量暴增。噪声越低秩1 成分相对越大，这个失败留下的
+    # 残差也越大 —— 实测 sigma=0.35 的零分布 p95 在两次独立估计间差 56%。
+    # 这里不涉及留出集，按训练误差选不构成泄露。
+    best_tr, best_R = np.inf, None
+    for _ in range(restarts):
+        P1 = als_guarded(Yz, obs, 1, rng, iters=iters, ridge=0.0)
+        Rm = np.where(obs, Y - P1, 0.0)
+        tr = float(np.mean(Rm[obs] ** 2))
+        if tr < best_tr:
+            best_tr, best_R = tr, Rm
+    return float(np.linalg.svd(best_R, compute_uv=False)[0])
 
 
 def run_cell(nr, nc, fill, sigma, lam2, nsim, rng):
@@ -98,7 +138,7 @@ def run_cell(nr, nc, fill, sigma, lam2, nsim, rng):
         if o.sum() < 2 * max(nr, nc):
             continue
         M0 = make(nr, nc, rng) + rng.normal(0, sigma, (nr, nc))
-        s = statistic(M0, o, rng)
+        s = spectral_stat(M0, o, rng)
         if s is not None:
             null.append(s)
     for _ in range(nsim):
@@ -106,7 +146,7 @@ def run_cell(nr, nc, fill, sigma, lam2, nsim, rng):
         if o.sum() < 2 * max(nr, nc):
             continue
         M1 = make(nr, nc, rng, lam2=lam2) + rng.normal(0, sigma, (nr, nc))
-        s = statistic(M1, o, rng)
+        s = spectral_stat(M1, o, rng)
         if s is not None:
             alt.append(s)
     if len(null) < 10 or len(alt) < 10:
