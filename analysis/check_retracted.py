@@ -71,6 +71,7 @@ RETRACTED = [
 LIVE_CLAIM = [
     "docs/30-manuscript.md",
     "docs/32-methods-paper.md",
+    "docs/35-paper-draft.md",
 ]
 
 
