@@ -587,7 +587,7 @@ def load_scales(verbose=True):
             "FAUJ880112": "neg_charge",
             "KYTJ820101": "kd_hydropathy",
             "ZIMJ680104": "isoelectric_point",
-            "RADA880106": "asa_buried_Rose",
+            "RADA880106": "asa_RadzickaWolfenden",   # 原误标为 Rose；RADA880106 是 Radzicka-Wolfenden 1988，Rose 的是 ROSG8501xx（docs/36）
             "CHOP780201": "helix_prop_Chou",
             "CHOP780202": "sheet_prop_Chou"}
     path = os.path.join(ROOT, "cache", "aaindex1.txt")

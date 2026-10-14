@@ -1607,3 +1607,154 @@ docs/27 的方向级 24 种子口径在这一格也给 0.000 —— **四个口�
 没有访问 `labels/`；没有开封 holdout；没有换掉任何主检验。**
 替换措辞在 docs/34 §9.2，三个人类决策点在 §10.2 —— 其中
 **k_eff 的选择是最需要裁定的那一个**。
+
+---
+
+## 2026-10-14 — docs/35 的参考文献核验与文献定位审计（docs/36）
+
+新建 `docs/36-references.md`（45 条编号引用）。**未改 `docs/35-paper-draft.md`
+或任何其他 docs 文件；未触碰 `docs/16`；未访问 `labels/`；未开封 holdout。**
+所有「草稿应改什么」只记录，不执行。
+
+核验口径一律走 primary source：Crossref REST、NCBI E-utilities、Zenodo REST、
+RCSB Data API、本地 `cache/aaindex1.txt` 自带的文献字段，
+以及**出版方补充材料的 `Content-Length` 对比本地字节数**。
+
+### 一个方法学观察，值得单列
+
+**先按记忆猜 DOI 再送去解析**的尝试里，7 个 DOI + 3 个 PMID 落空，
+其中只有 2 个返回 404，**另外 8 个解析成功但指向完全无关的论文**
+（Gollob 猜成一篇因子旋转、1PPF 猜成光合反应中心、3SGB 两次分别猜成
+硫酸肝素蛋白多糖和 Na/K-ATPase……）。
+**「DOI 能解析」与「DOI 是对的」是两件事，只看 HTTP 状态码会全部放过。**
+这与 D-023 同类：没有报错、输出看起来完全合理。
+→ 任何引用核验脚本必须比对**题名/作者**，不能只比对可解析性。
+
+### 第十一次：`RADA880106` 被标成 `asa_buried_Rose`（标签错，非数值错）
+
+`analysis/subspace_lib.py` 第 590 行把 AAindex `RADA880106` 加载为 `asa_buried_Rose`。
+但该 accession 的 `D` 字段是 **"Accessible surface area (Radzicka-Wolfenden, 1988)"**
+（*Biochemistry* 27, 1664-1670，doi:10.1021/bi00405a042）。
+**它不是 Rose et al.** Rose 的标度在同一文件里确实存在（`ROSG850101` /
+`ROSG850102`，Science 1985;229:834-838），**本仓库一个都没加载。**
+
+于是 docs/35 §3.3 的「Rose 埋藏表面积 r = +0.656 / r² = 0.431」以及
+docs/13 §449、docs/21 §564、docs/26 §514、docs/30 的同一标签**都指向了错的文献**。
+
+`assessment:` 这应当是**纯标签错误**（confidence: 中高）：
+`scale_redundancy.py` 的 `parse_aaindex` 文档串明确处理了 `(Pro missing)` 这类
+缺失标记与行主序两件事，而 `RADA880106` 的 `J` 字段正带 "(Pro missing)"、
+Pro 位写作裸 `0.` —— 即 **D-023 那一类静默错误在这条上没有重演，护栏生效了**。
+数值大概不用动，但标签必须改，否则读者会去核对错的那一篇。
+二选一（改名引 Radzicka–Wolfenden / 真换 `ROSG850101` 重算）是人类决策点。
+
+另外补上两处本来没写死的 accession：β 折叠倾向是 `CHOP780202`
+（Chou–Fasman 统计频率，不是实验热力学倾向标度，三类标度性质完全不同）。
+
+### 最硬的一条：8 成员证据集里 4 个成员没有可引的出版物
+
+逐成员追到底（文件→repo 是 LFS `oid sha256` 或 git blob SHA 逐位一致，确定；
+不确定性全在 repo→论文）：
+
+| 成员 | 状态 |
+|---|---|
+| OMTKY3 × 3（1CHO/1PPF/1R0R） | ✅ Lu et al. *PNAS* 2001;98:1410-1415 |
+| `starr2020/WH1/huACE2` | ✅ Starr et al. *Cell* 2020;182:1295-1310.e20 |
+| `animalACE2/WH1/bat` | ❌ **repo 无任何论文/预印本/DOI** |
+| `animalACE2/BA2/human_monomer` | ❌ 同上 |
+| `PDCoV/PDCoV/gAPN` | ❌ **repo 无任何论文/预印本/DOI** |
+| `sarbecovirus/SARS-CoV-1_Urban/Ra9479ACE2` | ⚠️ 有 Lee et al. *Cell Host Microbe* 2023，**但该文 Methods 只覆盖 PRD-0038 与 SARS-CoV-1 Urbani 对 human / R. alcyone / R. landeri 三个 ACE2 —— 用到的这一格不在其中** |
+
+即**病毒侧 5 个成员里只有 1 个有出版物来源**。
+`animalACE2` 与 `PD-CoV` 两个 repo 的 README 内 grep
+`doi/manuscript/paper/preprint/biorxiv/publish/cite` **零命中**，
+无 CITATION 文件、无 homepage，最后推送 2024-03 与 2025-07。
+Europe PMC 多路检索（repo 名全文、作者组合、表型关键词）全部 0 命中；
+两个近似项（Rexhepaj et al. *Immunity* 2024 的 PDCoV **抗体逃逸** DMS、
+*PNAS* 2026 的 minibinder 两个 repo）已逐一检查并排除。
+
+按 §3 这两条的引用字段应为 `null` + `gaps`，**不得猜**。
+但这已经不是书目问题：docs/35 §2.1「7 个骨架、9 个配体、约 8 万观测」与
+§7.1「两组质量不对等」都要加上这一层不对等。
+**这是 CLAUDE.md §9 第 1 条意义上的人类决策点，我没有自行选一个默认值。**
+
+### 新意定位：两篇都核了，一篇刻画准确、一篇动词不准确
+
+- **Rosace-AA** = Rao et al. *Bioinformatics Advances* 2025;6(1):vbaf218,
+  doi:10.1093/bioadv/vbaf218。其 Methods 式 (2) 确为
+  `β_v ~ Normal(φ_p(v) + ν_a(v)·ρ_p(v), σ²_p(v))`，
+  **「假设该交互为秩 1」准确**，且全篇不出现秩的讨论。
+  三条要补的限定：ν 的索引是**取代组**（BLOSUM 分组、每组覆盖 ≥20% 位点）
+  而非 20 残基；ρ ∈ [0,1] 带 Beta(1.5,1.5) 先验，是**非负缩放**的秩 1，
+  比秩 1 更强（**这对本文有利**）；表型是生长型打分，>500 domain 那一跑是**稳定性**。
+- **Husain & Murugan** = *MBE* 2020;37(10):2865-2874, doi:10.1093/molbev/msaa124。
+  索引确为突变×突变（`ΔΔF_ij ∝ θ_iθ_j + c_ij`，秩 = 软模个数），
+  **「索引是 site×site」准确**；
+  **但「确实测过秩」不准确** —— 那是摄动展开的理论推导加弹性网络模拟，
+  没有从任何实测矩阵估过秩。应改「推导出秩」。
+
+### 先验技术：找到两个近似项，都不构成先验技术，但都该引
+
+1. **一条曾看起来最危险的线索已排除。** bioRxiv 2025.06.13.659595
+   （Alpay, Nanda, Nagy & Desai）检索结果显示为 "a statistical **rank** model"，
+   形式上像「残基矩阵 × 逐位点标量」。取回全文 PDF 检索后确认：
+   那个 "rank" 是**序数秩（名次）**，不是矩阵的秩；模型是 Plackett–Luce 序模型，
+   `θ_i = logistic(β_{w_i,m_i} + β_SA·s_i)`，参数是一个 20×20 野生型×突变
+   可交换性矩阵加**一个**表面可及度系数，**没有位点×残基交互项**，
+   原文自述 "cannot capture epistasis"。
+   **但方向对本文略不利**：它表明一个完全不含位点×残基交互的模型
+   已能解释实测 DMS 效应序中相当大的方差，是「交互项有多大」的现成外部参照。
+2. **Kinjo & Nakamura 2008** *PLoS ONE* 3(4):e1963 —— **位点 × 20 氨基酸的 PSSM
+   做奇异值分析，索引形状与本文相同**，且第一成分惩罚功能重要位点的取代、
+   第二成分与疏水性相关。对象是比对导出的打分而非实测能量，
+   且没有定秩程序，所以不是先验技术，**但索引最接近，定稿前应读全文**。
+
+**方法学定位（这条会被审稿人问）**：本文的分解加上「估交互项的秩」
+**就是 AMMI 模型的乘性项个数选择**，有 50 年文献与已标定 Type I 错误率的检验
+（Gollob 1968；Gauch 1988；Forkman & Piepho *Biometrics* 2014；Malik et al. 2018/2019）。
+docs/12 §4 的置换对照确实显示程序无偏，但 §9.1 应显式提到这个命名与这类检验。
+**这反而加强新意陈述**：「方法成熟、只是没被用在这个索引上」比
+「我们发明了一个定秩程序」更稳。
+
+**建议的新意措辞收紧**（docs/36 §6.3）：把全称否定改成
+「此前没有**从实测的结合自由能变化上**被估计过」，
+本文的实际贡献在收紧后完整保留。
+
+### 其他更正（全部只记录）
+
+- `MCMT640101` 不是「McMeekin 1964」这一篇期刊论文，是 McMeekin/Groves/Hipp 的
+  ACS 书章（AAindex 无题名、无 PMID），且 `D` 字段明写数值**转引自 Jones (1975)**。
+  Gly=0.00 / Trp=42.53 自检本身没问题。
+- docs/35 §7.5 的「某个常用数据库」= **SKEMPI v2**（不是 MaveDB ——
+  **MaveDB 在本仓库 docs/analysis/JOURNAL 里一次都没出现过**），
+  且「常用」是低估，应具名引用。
+- Tsuboyama 的 `10.5281/zenodo.7992926` 是**版本 DOI**，concept DOI 是
+  `10.5281/zenodo.7401274`；PROVENANCE 清单把两层 zip 压成一层（文件全部存在）。
+- ddPCA 的上游文件名是 Dropbox 上的 `Data.zip`、**不是 Zenodo**；
+  它与 `htmek_PafA_*` 两处**都没有记录 URL/校验和**，映射只到「内容级」，应补取数清单。
+- `magma_MOESM{3,4,5,6}.xlsx` 对 Petersen et al. *Nat Commun* 2024;15:3974 的
+  补充材料**字节级 4/4 全中**（123599/32602/94350/599076）—— 本次唯一达到字节级的映射。
+- `cr9114_PROVENANCE.json`：**PMC12637573 归属错了**，它是**预印本**的 PMCID；
+  预印本题名与正式版不同、作者 9→10（正式版新增 Huibin Lv）。
+  Zenodo 那个 gap **保持开启**：`10.5281/zenodo.22697938` 确实解析（且确实是本 repo 的
+  concept DOI，快照日期 2026-09-10 与 pinned commit 吻合），
+  **但 README 在 pinned commit 与 main 两处都没有它** ——
+  **能解析证明 DOI 存在，不证明当初是从哪里读到的**，出处仍不可追。
+- `starr_animalACE2` 的背景标签：上游 README 写「Alpha」，数据的 `target` 列是
+  **`Eta`**，本仓库记的与**数据**一致。**不要按 README 去订正数据。**
+  这是「被检查对象的错」而不是「工具的错」（§10 末条）。
+- 文件名 `starr_EG5BA286_*` 与 `starr_KP3LP8_*` 实际都是 **Taylor & Starr**
+  （Taylor 第一作者），`starr_` 前缀误导。
+
+### 留在 UNVERIFIED 的 4 项（docs/36 §4）
+
+animalACE2 与 PD-CoV 无出版物（最高优先级）；Fauchère–Pliska 无 DOI/PMID
+（AAindex 的 `R` 字段本身为空，已直接看过原始字节）；3SGB 的文献 DOI；
+以及若干二级项（Platinum 更新版「未找到」≠「不存在」、Eisenlohr 年份 1911 vs NIST 的
+1910/1911 内部矛盾、Battaglia 1981 的 DOI）。
+
+**先验技术一节的覆盖缺口已在 docs/36 §6.4 逐条写明**，其中
+MoCHI / MAVE-NN / Otwinowski / Sailer & Harms 的 Methods 全文未读、
+Kinjo & Nakamura 只读摘要，是定稿前该补的两处。
+§6.1 的结论应按「尽力检索未发现」而非「不存在」来读 ——
+本次两个最接近的近似项都是在审计过程中才浮现的。
