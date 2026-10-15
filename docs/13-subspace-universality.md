@@ -589,3 +589,26 @@ python3 analysis/subspace_two_groups.py     # 两组证据下的共识/成对/PR
 selftest [G] 逐元素核对其向量化版本）、`rank_test_power.als_guarded`
 （并由 selftest [D] 与快抽取器交叉核验）、
 `scale_redundancy.parse_aaindex` 与 `sanity_check`。
+
+---
+
+## 更正（2026-10-15，来源 docs/36-references.md §5.3 / D-071 / docs/38-ref-cleanup.md）
+
+**本文件 §7 载荷表里那一行「埋藏 ASA (Rose)」的标签是错的。**
+该行用的 AAindex 登录号是 `RADA880106`，而该登录号是
+**Radzicka & Wolfenden 1988 的可及表面积**
+（`D` 字段逐字："Accessible surface area (Radzicka-Wolfenden, 1988)"；
+*Biochemistry* 1988;27(5):1664–1670，doi:10.1021/bi00405a042）。
+Rose et al. 1985 的标度是 `ROSG850101`（Mean area buried on transfer）与
+`ROSG850102`（Mean fractional area loss），*Science* 1985;229(4716):834–838，
+doi:10.1126/science.4023714；两者都在同一份 `cache/aaindex1.txt` 里，
+**本仓库从未加载过其中任何一条**。
+正确标签是「可及表面积（Radzicka–Wolfenden 1988）」，而**不是**「埋藏」。
+
+**数值一个都不动，正文也不改写**（本文件是「当时相信什么」的记录）。
+按 D-071 这是**纯标签错误而非数值错误**；docs/38 §4 独立复现了
+`cache/gate_consequences.json` 场景 D 的 r = +0.656253 / r² = 0.430667
+（逐位一致），并确认 `RADA880106` 的 Pro 位被解析器判为**缺失而非 0**
+（n = 19），即 **D-023 的失效模式没有复发**。
+**但本节 §7 表里的 +0.723 / 0.523 是三组口径的数字，不在上述缓存里，
+docs/38 没有重算它** —— 本更正只覆盖标签，不对该数字背书。

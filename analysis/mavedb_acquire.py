@@ -25,15 +25,24 @@ OUT = os.path.join(os.path.dirname(__file__), "..", "cache", "mavedb")
 PAGE = 100
 
 
-def _post(path, body, timeout=180):
-    req = urllib.request.Request(
-        API + path,
-        data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json",
-                 "Accept": "application/json"},
-        method="POST")
-    with urllib.request.urlopen(req, timeout=timeout) as fh:
-        return fh.read()
+def _post(path, body, timeout=180, tries=6):
+    last = None
+    for i in range(tries):
+        req = urllib.request.Request(
+            API + path,
+            data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json",
+                     "Accept": "application/json"},
+            method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as fh:
+                return fh.read()
+        except Exception as exc:                              # noqa: BLE001
+            last = exc
+            print(f"    retry {i + 1}/{tries} after {exc}", file=sys.stderr,
+                  flush=True)
+            time.sleep(3 * (i + 1))
+    raise last
 
 
 def _get(path, timeout=180):

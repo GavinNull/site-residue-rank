@@ -227,3 +227,24 @@ confidence: 高（这是一个关于输入数据正确性的判断，不是关�
 注意它不影响「截尾会摧毁可检测性」这个定性方向——
 docs/13 的剔除判据正是沿用它做的，且 hAPN/pAPN 的真实截尾高达 46/48%
 与它们给出秩 0 是一致的；可疑的是那个**具体的相关系数**。
+
+---
+
+## 更正（2026-10-15，来源 docs/36-references.md §5.3 / D-071 / docs/38-ref-cleanup.md）
+
+**本文件里出现的「埋藏 ASA (Rose)」/「Rose 埋藏 ASA」/「埋藏 ASA」这个标签是错的。**
+该标度的 AAindex 登录号是 `RADA880106`，它是
+**Radzicka & Wolfenden 1988 的可及表面积**
+（`D` 字段逐字："Accessible surface area (Radzicka-Wolfenden, 1988)"；
+*Biochemistry* 1988;27(5):1664–1670，doi:10.1021/bi00405a042）。
+Rose et al. 1985 的标度（`ROSG850101` / `ROSG850102`，
+*Science* 1985;229(4716):834–838，doi:10.1126/science.4023714）
+在同一份 `cache/aaindex1.txt` 里存在，**本仓库从未加载过其中任何一条**。
+正确标签是「可及表面积（Radzicka–Wolfenden 1988）」，「埋藏」这个词也是错的。
+
+**数值一个都不动，正文也不改写**（本文件是「当时相信什么」的记录，
+改写它会毁掉审计链，同 D-070 的作用域判断）。
+按 D-071 这是**纯标签错误而非数值错误**：docs/38 §4 独立复现了
+`cache/gate_consequences.json` 场景 D 的 r = +0.656253 / r² = 0.430667（逐位一致），
+且 `RADA880106` 的 Pro 位被 `scale_redundancy.parse_aaindex` 判为**缺失而非 0**
+（n = 19），即 **D-023 的失效模式没有复发**。
