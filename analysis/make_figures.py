@@ -12,9 +12,18 @@
 标注用英文：仓库里没有装 CJK 字体，中文会渲染成方框，
 而一张带方框的图比没有图更坏（它看起来是对的）。
 
+### 这条门禁覆盖什么、不覆盖什么（D-077）
+
+`EXPECT` 是**图的**汇总量，一共 10 个。本脚本的 PASS **只说这 10 个量与缓存一致**。
+它**不覆盖** docs/35 §3.3 / docs/30 §2 的五行化学标度表 —— D-077 正是因为
+有人把这里的绿灯读成了「那张表也被检查过」才漏了一年多的口径混用。
+那张表由 `analysis/check_scale_table.py` 单独把门（见该文件开头的理由）。
+**引用任何「门禁通过」时必须写明它覆盖的范围。**
+
 用法:
   python3 analysis/make_figures.py          # 出图 + 核对
   python3 analysis/make_figures.py --check  # 只核对，不写文件
+  python3 analysis/check_scale_table.py     # §3.3 的表（另一条门禁）
 """
 import json
 import os
