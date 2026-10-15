@@ -53,6 +53,9 @@ python3 analysis/make_figures.py --check  # 图里的汇总量与正文一致
 ## 许可
 
 MIT，见 [`LICENSE`](LICENSE)。`cache/` 中的第三方数据遵循各自来源的许可，不在本许可范围内。
+仓库中被跟踪的 `single_site_ddG_series.csv` 是从 **SKEMPI 2.0** 整理出的单点突变系列子集
+（每行带原始文献 PMID），其权利归 SKEMPI 与原始文献作者所有，使用请引用 SKEMPI 2.0 及对应文献；
+它**不**属于上述 MIT 授权的范围。
 
 ## 关于 `labels/`
 
