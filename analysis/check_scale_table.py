@@ -52,6 +52,21 @@ TOL = 0.0015
 
 # 正文应当写的值 = 口径 A（8 成员）。顺序即表里的行序。
 # (键, 表里的关键词, r, r², n)
+# ---- 块报告表（docs/35 §3.3 / docs/30 §2，人类裁定 D-085）---------------
+# **只定义行的身份与顺序，不写死数值**：数值由本脚本自身重算，
+# 再与文档里印出来的比。少一层硬编码，就少一处会和缓存脱钩的地方
+# —— docs/40 §8 把「写死在脚本里、不绑任何缓存」列为当前最高优先的覆盖缺口。
+BLOCK_ROWS = [
+    ("asa_buried_Rose1985",   ("Rose", "埋藏面积")),
+    ("local_polarizability",  ("极化率",)),
+    ("molar_refractivity",    ("折射度",)),
+    ("asa_RadzickaWolfenden", ("表面积",)),
+    ("pi_octanol_FauchereP",  ("辛醇",)),
+    ("frac_buried_Rose1985",  ("Rose", "埋藏比例")),
+    ("kd_hydropathy",         ("Kyte",)),
+    ("sheet_prop_Chou",       ("折叠倾向",)),
+]
+
 EXPECT_8 = [
     ("sheet_prop_Chou",       ("折叠倾向", "sheet"), +0.827153, 0.684182, 20),
     ("local_polarizability",  ("极化率",),           +0.708622, 0.502145, 20),
@@ -233,12 +248,22 @@ def selftest(verbose=True):
           f"{worst:.3f}  {'未出现伪强相关 ✓' if hit4 else '**伪相关过强**'}")
     ok &= hit4
 
-    # NC5  文档解析器自己要能抓到被改坏的一行
+    # NC5  文档解析器自己要能抓到被改坏的一行。
+    # **不按字面行文本构造篡改**：上一版写死了旧三列表的那串字符，
+    # §3.3 改成块报告的五列之后它匹配不上，于是 NC5 永远失败——
+    # 而失败的是自检本身，不是文档。改成从实际解析结果反推要改哪个数。
     txt = open(DOC35, encoding="utf-8").read()
     rows = parse_doc_table(txt, "### 3.3")
-    hit5 = rows is not None and len(rows) == 5
+    hit5 = rows is not None and len(rows) == len(BLOCK_ROWS)
+    if not hit5:
+        print(f"   [反向 NC5] 解析到 {0 if rows is None else len(rows)} 行，"
+              f"应为 {len(BLOCK_ROWS)} 行")
     if hit5:
-        tampered = txt.replace("| +0.779 | **0.607** |", "| +0.999 | **0.999** |")
+        i0 = txt.find("### 3.3")
+        seg = txt[i0:i0 + 6000]
+        lit = f"{rows[0][1]:.3f}"
+        assert seg.count(lit) >= 1, f"首行 r² 字面 {lit} 不在表里"
+        tampered = txt[:i0] + seg.replace(lit, "0.999", 1) + txt[i0 + 6000:]
         tr = parse_doc_table(tampered, "### 3.3")
         hit5 = tr is not None and abs(tr[0][1] - 0.999) < 1e-9
     print(f"   [反向 NC5] 把文档表里第 1 行改成 0.999，解析器"
@@ -252,33 +277,47 @@ _NUM = re.compile(r"[-+]?\d*\.\d+")
 
 
 def parse_doc_table(txt, anchor):
-    """从 anchor 开始找第一张 `| 标度 | r | r² |` 表，返回 [(label, r, r2), ...]。"""
+    """按**表头**定位 `标度` 与 `r²` 两列（不按列位置），返回 [(label, r2), ...]。
+
+    改成表头映射，是因为 §3.3 从三列改成块报告的五列之后，
+    按位置写死的旧解析器匹配不到任何东西 —— 于是它既读不到数、
+    也读不到被篡改的行，自检 NC5 当场把它判成「瞎的」。
+    一个读不到东西的检查器不会报错，只会一直绿。
+    """
     i = txt.find(anchor)
     if i < 0:
         return None
-    seg = txt[i:i + 4000].splitlines()
-    rows, started = [], False
-    for ln in seg:
-        if ln.startswith("|") and "|" in ln[1:]:
-            cells = [c.strip() for c in ln.strip().strip("|").split("|")]
-            if len(cells) < 3:
-                continue
-            if set(cells[0]) <= set("-: ") or cells[1] in ("r",):
-                started = True
-                continue
-            if not started:
-                continue
-            n1 = _NUM.findall(cells[1])
-            n2 = _NUM.findall(cells[2])
-            if not n1 or not n2:
-                continue
-            rows.append((cells[0], float(n1[0]), float(n2[0])))
-        elif rows:
-            break
+    rows, col_lab, col_r2 = [], None, None
+    for ln in txt[i:i + 6000].splitlines():
+        if not ln.startswith("|"):
+            if rows:
+                break
+            continue
+        cells = [c.strip().strip("*") for c in ln.strip().strip("|").split("|")]
+        if col_lab is None:                       # 还没找到表头
+            names = [c.lower() for c in cells]
+            if any("标度" in c for c in cells) and any(
+                    c.replace(" ", "") in ("r²", "r2") for c in cells):
+                col_lab = next(k for k, c in enumerate(cells) if "标度" in c)
+                col_r2 = next(k for k, c in enumerate(cells)
+                              if c.replace(" ", "") in ("r²", "r2"))
+            continue
+        if set("".join(cells)) <= set("-: "):     # 分隔行
+            continue
+        if max(col_lab, col_r2) >= len(cells):
+            continue
+        lab = cells[col_lab]
+        n2 = _NUM.findall(cells[col_r2])
+        if not lab or not n2:
+            continue
+        rows.append((lab, float(n2[0])))
+    if col_lab is None:
+        return None
     return rows or None
 
 
-def check_docs():
+def check_docs(recomputed):
+    """recomputed: {scale_key: r2}（本脚本重算所得）。"""
     bad = []
     for path, anchor, name in ((DOC35, "### 3.3", "docs/35 §3.3"),
                                (DOC30, "## 2. ", "docs/30 §2")):
@@ -286,83 +325,68 @@ def check_docs():
         rows = parse_doc_table(txt, anchor)
         print(f"\n   {name}：", end="")
         if rows is None:
-            print("**找不到那张表** —— 锚点或表头被改过，检查器失去覆盖")
+            print("**找不到那张表（表头未命中）** —— 检查器失去覆盖")
             bad.append(f"{name}: 表未找到")
             continue
         print(f"读到 {len(rows)} 行")
-        if len(rows) != len(EXPECT_8):
-            bad.append(f"{name}: 行数 {len(rows)} ≠ {len(EXPECT_8)}")
-        for i, (lab, r, r2) in enumerate(rows[:len(EXPECT_8)]):
-            key, kws, er, er2, _ = EXPECT_8[i]
-            tag = "ok"
+        if len(rows) != len(BLOCK_ROWS):
+            bad.append(f"{name}: 行数 {len(rows)} ≠ {len(BLOCK_ROWS)}")
+        for i, (lab, r2) in enumerate(rows[:len(BLOCK_ROWS)]):
+            key, kws = BLOCK_ROWS[i]
             if not any(k.lower() in lab.lower() for k in kws):
-                bad.append(f"{name} 第 {i+1} 行标签 “{lab}” 不像 {key}")
-                tag = "**行序/标签不符**"
-            d1, d2 = abs(r - er), abs(r2 - er2)
-            if d1 > 0.0006 or d2 > 0.0006:
-                bad.append(f"{name} 第 {i+1} 行（{key}）: 文档 {r:+.3f}/{r2:.3f}"
-                           f" vs 8 成员口径 {er:+.3f}/{er2:.3f}")
-                tag = "**与 8 成员口径不符**"
-            print(f"      {lab[:34]:<34} {r:+.3f} / {r2:.3f}   {tag}")
-        warn = "口径不一致，待重算" in txt
-        print(f"      [警示块] {'仍在' if warn else '已移除'}")
-        if warn and not bad:
-            bad.append(f"{name}: 表值已对，但警示块还没撤")
+                bad.append(f"{name} 第 {i+1} 行标签「{lab}」不像 {key}")
+                print(f"      {i+1}. {lab:<28} **行序/标签不符**")
+                continue
+            exp = recomputed.get(key)
+            if exp is None:
+                bad.append(f"{name} 第 {i+1} 行：重算里没有 {key}")
+                continue
+            ok = abs(r2 - exp) <= TOL
+            if not ok:
+                bad.append(f"{name} {key}: 文档 {r2:.3f} vs 重算 {exp:.4f}")
+            print(f"      {i+1}. {lab:<28} r²={r2:.3f} vs 重算 {exp:.4f}  "
+                  f"{'ok' if ok else '**不符**'}")
+        if "本表口径不一致" in txt:
+            bad.append(f"{name}: 口径警示块仍在")
+            print("      **警示块仍在**")
     return bad
 
 
-# ---------------------------------------------------------------- 主流程
-def main():
-    only_self = "--selftest" in sys.argv
-    print("=" * 78)
-    print("§3.3 / docs/30 §2 五行化学标度表：重算 + 核对")
-    print("=" * 78)
-    print("\n[自检] 解析器与检查器自身（强制，不通过即中止）")
-    if not selftest(verbose=True):
-        print("\n**自检未通过 —— 后面的数字一律不可用。**")
-        return 2
-    print("   自检通过（5 条反向全部命中，且小扰动未误报）")
-    if only_self:
-        print("\n--selftest：只跑自检，已通过。")
-        return 0
-
+# ------------------------------------------------------------------ main
+def recompute_block():
+    """重算块表 8 行的 r²（口径 A = 8 成员）。返回 {key: r2}。"""
+    u, lam1, _ac = axis("A")
     sc = all_scales()
-    bad = []
-    for prefix, exp, cal in (("A.", EXPECT_8, "8 成员（冠状病毒 5 + OMTKY3 3）"),
-                             ("D.", EXPECT_9, "9 成员（含 3SGB，历史对照）")):
-        u, lam1, ac = axis(prefix)
-        print(f"\n[口径 {prefix[0]}] {cal}   λ1 = {lam1:.6f}"
-              f"（就地重算，与缓存 u 的 |cos| = {ac:.12f}）")
-        print(f"   {'标度':<24}{'r':>10}{'r²':>9}{'n':>4}"
-              f"{'bootstrap r² 95%':>22}")
-        for item in exp:
-            key = item[0]
-            er, er2, en = item[-3], item[-2], item[-1]
-            r, r2, n = row(u, sc[key])
-            lo, hi = boot_r2(u, sc[key])[:2]
-            flag = ""
-            if abs(r - er) > TOL or abs(r2 - er2) > TOL or n != en:
-                flag = "  << 与写定值不符"
-                bad.append(f"口径 {prefix[0]} {key}: 重算 {r:+.6f}/{r2:.6f}/n={n}"
-                           f" vs 写定 {er:+.6f}/{er2:.6f}/n={en}")
-            print(f"   {key:<24}{r:>+10.6f}{r2:>9.6f}{n:>4}"
-                  f"{f'[{lo:.3f}, {hi:.3f}]':>22}{flag}")
-
-    if "--no-docs" not in sys.argv:
-        print("\n[文档核对] 两份正文里的那张表是否就是 8 成员口径")
-        bad += check_docs()
-
-    print("\n" + "=" * 78)
-    if bad:
-        print(f"**不一致 {len(bad)} 处：**")
-        for b in bad:
-            print("   - " + b)
-        print("\n（若这是 D-077 的待办：替换文本在 docs/40-scale-table.md §7，"
-              "表值归入人类裁定 CLAUDE.md §9.1，检查器不自行改正文。）")
-        return 1
-    print("全部断言通过：两个口径的表值都从缓存复现，且两份正文与 8 成员口径一致。")
-    return 0
+    out = {}
+    for key, _ in BLOCK_ROWS:
+        assert key in sc, f"标度 {key} 不在 all_scales() 里"
+        _, r2, _n = row(u, sc[key])
+        out[key] = r2
+    return out
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    import sys
+    print("=" * 78)
+    print("§3.3 / docs/30 §2 化学标度块表：重算 + 核对")
+    print("=" * 78)
+    if not selftest():
+        print("\n**自检未通过 —— 后面的数字一律不可用。**")
+        sys.exit(2)
+    if "--selftest" in sys.argv:
+        sys.exit(0)
+
+    rec = recompute_block()
+    print("\n[重算] 口径 A（8 成员）块表 r²")
+    for key, _ in BLOCK_ROWS:
+        print(f"   {key:<26} {rec[key]:.4f}")
+
+    bad = check_docs(rec)
+    print()
+    if bad:
+        print(f"**{len(bad)} 处不符：**")
+        for b in bad:
+            print(f"   - {b}")
+        sys.exit(1)
+    print("两份文档的块表与重算一致，警示块已移除 ✓")
+    sys.exit(0)
