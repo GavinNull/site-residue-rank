@@ -229,8 +229,23 @@ def fig4(write=True):
     是量级比较而不是 p 值，**不依赖零分布的建模选择**——
     这正是本文让第二轴的结论挂在它上面而不是挂在任何显著性检验上的原因。
     """
-    ISO, SHARED_X, SHARED_W = 0.165, 0.901, 0.821
-    OBS_X, OBS_W = 0.105, 0.146
+    # **全部绑定缓存，不再写死。** 此前这五个数是 make_figures.fig4 里的常量，
+    # 只跟自己比、不绑任何缓存，还在四份文档里各写了一遍（docs/40 §8 列为
+    # 当前最高优先的覆盖缺口）。更险的是：「若完全共享会测到 0.901/0.821」
+    # 这两个数**从来没落过盘**——缓存里搜 0.901 命中的全是 lam1_med（λ1 恰好
+    # 也约等于 0.901），据此「绑定」会绑到一个完全不同的量上。
+    # 现由 analysis/lambda2_ideal_persist.py 重跑并逐位复现 docs/34 §4 后落盘。
+    ideal = load("lambda2_ideal.json")
+    pm_i, pm_o = ideal["pair_med_ideal"], ideal["obs_pair_med"]
+    SHARED_X, SHARED_W = pm_i["cross"][1], pm_i["omt"][1]   # 若完全共享的 cos θ2
+    OBS_X, OBS_W = pm_o["cross"][1], pm_o["omt"][1]         # 实测 cos θ2
+    ISO = 0.165          # 18 维各向同性基线的两两 |cos| 中位（解析 sqrt(2/(πd))=0.188，
+                         # 均值 0.191；中位 0.165 由 20 万次抽样得，docs/20 §6.5、docs/33）
+    # 与 docs/35 §4.1 写定的数字核对：图与正文脱钩即中止
+    close(SHARED_X, 0.901, 0.001, "共享地板（跨家族）")
+    close(SHARED_W, 0.821, 0.001, "共享地板（家族内）")
+    close(OBS_X, 0.105, 0.001, "实测 cos θ2（跨家族）")
+    close(OBS_W, 0.146, 0.001, "实测 cos θ2（家族内）")
     assert OBS_X < ISO and OBS_W < ISO, "观测应落在各向同性基线以下"
     assert SHARED_W - OBS_W > 0.6, "共享地板与观测之差应接近一个量级"
     if not write:
