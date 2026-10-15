@@ -516,7 +516,7 @@ def main():
                                      "generic_disrupt_scales.json")))
     dis = {k: np.array(v, float) for k, v in DS["scales"].items()}
     want = ["sheet_prop_Chou", "local_polarizability", "molar_refractivity",
-            "pi_octanol_FauchereP", "asa_buried_Rose", "kd_hydropathy",
+            "pi_octanol_FauchereP", "asa_RadzickaWolfenden", "kd_hydropathy",
             "partial_specific_volume", "steric_upsilon"]
     rowsc = []
     for nm in want + list(dis):
@@ -545,7 +545,7 @@ def main():
               f"{z['med_r2']:>9.3f}"
               f"{'[%.2f, %.2f]' % (z['q10'], z['q90']):>18}")
     print(f"\n   参照（binding 一侧，docs/21 §6）：sheet propensity r² 0.607、"
-          f"极化率 0.568、埋藏 ASA 0.431、Kyte-Doolittle 0.223")
+          f"极化率 0.568、可及表面积 0.431、Kyte-Doolittle 0.223")
 
     out = {"n_admitted": len(adm), "quantile": a.quantile,
            "sigma": {"C_median": sig, "A_lower": sig_lo,

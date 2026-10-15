@@ -44,7 +44,7 @@ ONE = np.ones(20) / math.sqrt(20)
 
 # 「体积 / 极化率」那一支：docs/21 §6 判定的主干身份
 VOL_SCALES = ["local_polarizability", "molar_refractivity",
-              "asa_buried_Rose", "partial_specific_volume",
+              "asa_RadzickaWolfenden", "partial_specific_volume",
               "steric_upsilon"]
 DISRUPT_KEYS = ["D1_folding_ddG_ddPCA", "D2_blosum62_nonexchangeability",
                 "D3_starr_expression_loss", "D4_backbone_disruption_PG",
