@@ -73,24 +73,48 @@ def fig1(write=True):
     分层后两层**各自**断言，方向相反：
     低截尾层的极小必须在秩 2，高截尾层的极小必须**不**在秩 2。
     这是 §10.2 的「既测能命中，也测不误伤」用在图上。
+
+    **D-091 / docs/44 的改动**：数据源换成 K1（去偏）的均值曲线。三条原断言一字未改且仍为真；
+    新增两条编码 K1 下更弱的事实：秩 3 劣于秩 2 的单元重抽区间排除 0；
+    秩 1 与秩 2 之差的区间含 0（故图题不再说「真正的内部极小」，只说最小值在秩 2、1 与 2 不能区分）。
+    原数据源 ligand_rank.json 用全数据双向中心化（有泄露的口径），不再用于本图。
     """
-    rows = load("ligand_rank.json")
+    # D-091/docs/44：数据源由 ligand_rank.json（全数据双向中心化，**有泄露**；且是现行程序）
+    # 换成 k1_recompute 落盘的 K1 均值曲线（cache/k1_units34.json）。分层判据与单元集不变。
+    rows = load("k1_units34.json")
     lo, hi = [], []
     for r in rows:
-        mc = r.get("mean_curve") or {}
+        mc = r.get("mean_curve_k1") or {}
         ks = sorted(int(k) for k in mc)
         if ks != [0, 1, 2, 3]:
             continue
         v = np.array([mc[str(k)] for k in ks], float)
         if not np.all(np.isfinite(v)) or v[0] <= 0:
             continue
-        frac = r["cens"] / (r["cens"] + r["n"])     # docs/19 §1 的反推口径
+        frac = r["cens_count"] / (r["cens_count"] + r["n"])     # docs/19 §1 的反推口径（cens/(cens+n)）
         (lo if frac < 0.10 else hi).append(v / v[0])  # 以秩 0 归一
     L, H = np.array(lo), np.array(hi)
     assert len(L) == 21, f"低截尾层应为 21 个组合（docs/12 §2），实得 {len(L)}"
     mL, mH = np.median(L, axis=0), np.median(H, axis=0)
+    # ---- 以下三条是原有断言，一字未改（K1 下仍为真）
     assert int(np.argmin(mL)) == 2, f"低截尾层中位极小在秩 {int(np.argmin(mL))}，不是 2"
     assert int(np.argmin(mH)) != 2, "高截尾层中位极小落在秩 2 —— 分层失去判别力"
+    # ---- 以下是 docs/44 新增：编码 K1 下**更弱**的真实主张（预先登记 R6）。
+    # K1 下低截尾层「极小在秩 2」成立，但秩 1 与秩 2 之差的单元重抽区间含 0，
+    # 而秩 3 明显更差。图题与正文只能这样写；若数据变到这两条不再成立，必须回头改图题。
+    rng = np.random.default_rng(20261018)
+    d12, d32 = [], []
+    for _ in range(2000):
+        mb = np.median(L[rng.integers(0, len(L), len(L))], axis=0)
+        d12.append(mb[1] - mb[2])
+        d32.append(mb[3] - mb[2])
+    ci12, ci32 = np.percentile(d12, [2.5, 97.5]), np.percentile(d32, [2.5, 97.5])
+    assert ci32[0] > 0, f"秩 3 劣于秩 2 在低截尾层不再被区间支持 {ci32}"
+    assert ci12[0] <= 0, ("K1 下秩 1 与秩 2 之差的区间已排除 0 —— 图题可以去掉「不能区分」的限定，"
+                          f"请回头改 docs/44 R6 与图题 {ci12}")
+    kr = load("k1_recompute.json")["fig1"]["k1"]["low"]
+    close(float(mL[1] - mL[2]), kr["m1_minus_m2"], 1e-9, "Fig1 与 k1_recompute 缓存脱钩 (m1-m2)")
+    close(ci12[0], kr["m1_minus_m2_ci"][0], 1e-9, "Fig1 与 k1_recompute 缓存脱钩 (CI 下界)")
 
     if not write:
         return len(L), len(H)
@@ -105,14 +129,14 @@ def fig1(write=True):
     ax.plot(x, mH, color="#c0392b", lw=2.4, marker="s", ms=5.5, zorder=4,
             label=f"censoring \u2265 10%  (n = {len(H)})")
     ax.axvline(2, color="#1f4e8c", ls=":", lw=1.1, zorder=2)
-    ax.annotate("interior minimum", xy=(2, mL[2]), xytext=(2.3, mL[2] - 0.045),
+    ax.annotate("minimum at rank 2\n(rank 1 vs 2: not resolved)", xy=(2, mL[2]), xytext=(2.25, mL[2] - 0.085),
                 color="#1f4e8c", fontsize=8,
                 arrowprops=dict(arrowstyle="->", color="#1f4e8c", lw=0.9))
     ax.set_xticks(x)
     ax.set_xlabel("rank of fitted interaction term")
     ax.set_ylabel("cross-validated error\n(relative to rank 0)")
-    ax.set_title("Rank selection: the optimum is 2 where the assay has\n"
-                 "dynamic range, and 0 where censoring removes it", fontsize=9.5)
+    ax.set_title("Rank selection (debiased K1): rank 3 overfits; ranks 1 and 2\n"
+                 "are not resolved; censoring pushes the optimum to 0", fontsize=9.0)
     ax.legend(frameon=False, fontsize=8, loc="upper left")
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()

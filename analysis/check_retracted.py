@@ -65,6 +65,25 @@ RETRACTED = [
     (r"14/15", "14/15 作为符号检验证据（子集不独立）", "D-088 / docs/41"),
 ]
 
+
+# ---- docs/44（D-091：头条定秩程序换成 K1）新增：**现行程序下算出的数字**被取代，不得再作为当前事实出现 ----
+# 只在 `--docs44` 下强制（默认运行只打印待处理条数，不影响退出码）：
+# 在人类把 docs/44 §5 的替换文本应用到 docs/35 / docs/32 / README 之前，这些数字就活在稿子里，
+# 若默认强制，这条门禁会立刻变红并长期红着——而长期红的门禁的下一步总是放宽。
+# 已并入强制路径（见 __main__）；`--docs44` 开关不再需要，保留兼容。
+DOCS44_MARKERS = ["去偏前", "现行程序", "旧程序", "docs/44 之前", "旧口径", "已被取代", "被取代"]
+SUPERSEDED_DOCS44 = [
+    (r"\+3\.5%\s*\[\+0\.7%", "S1 秩 1→2 增益（现行程序，逐格口径）", "D-091 / docs/44：K1 下为 +1.3% [−1.4%, +4.7%]（seed 41）"),
+    (r"\+4\.5%[^。\n]{0,40}\[\+0\.8%, \+7\.3%\]", "S1 秩 1→2 中位 +4.5%（现行程序）", "D-091 / docs/44"),
+    (r"\[[−-]1\.6%, \+9\.4%\]", "现行程序下三源联合重抽的 g12 区间", "D-091 / docs/44：K1 下为 [−4.7%, +6.9%]"),
+    (r"\+11\.4%", "秩 0→2 中位 +11.4%（现行程序）", "D-091 / docs/44：K1 下为 +8.7%"),
+    (r"43\.2%[^。\n]{0,40}10\.9%[^。\n]{0,40}0\.1%", "按检出秩分层的截尾中位 43.2/10.9/0.1（现行/原秩）", "D-091 / docs/44：K1 下为 43.2 / 10.9 / 0.2"),
+    (r"\b15/18\b", "现行程序 15/18 为秩 2（口径含 CR9114 WT_H1）", "D-091 / docs/44：CR9114 移出后范围内为 14/17"),
+    (r"\b12/18\b", "K1 12/18 为秩 2（口径含 CR9114 WT_H1）", "D-091 / docs/44：范围内为 12/17"),
+    (r"16/21|76%（16/21", "截尾<10% 的 21 个组合里 16 个秩 2（现行程序）", "D-091 / docs/44：K1 下为 14/21"),
+    (r"[−-]7\.0%\s*\[[−-]8\.[78]%", "S1 秩 2→3（现行程序）", "D-091 / docs/44：K1 下为 −11.6% [−15.3%, −8.8%]"),
+]
+
 # **作用域：只扫「对外声明主张」的文档。**
 #
 # 第一版扫全仓库，得到 127 处 —— 而其中绝大多数是正当的：
@@ -106,6 +125,37 @@ def scan_text(text, label):
             if re.search(pat, para):
                 bad.append((label, start, what, why))
     return bad
+
+
+def scan_text_docs44(text, label):
+    bad = []
+    for start, para in paragraphs(text):
+        if any(m in para for m in ALLOW_MARKERS + DOCS44_MARKERS):
+            continue
+        for pat, what, why in SUPERSEDED_DOCS44:
+            if re.search(pat, para):
+                bad.append((label, start, what, why))
+    return bad
+
+
+def scan_repo_docs44():
+    bad = []
+    for rel in LIVE_CLAIM:
+        full = os.path.join(ROOT, rel)
+        if os.path.exists(full):
+            with open(full, encoding="utf-8", errors="replace") as fh:
+                bad += scan_text_docs44(fh.read(), rel)
+    return bad
+
+
+def selftest_docs44():
+    hit = "S1 的秩 1→2 增益为 +3.5% [+0.7%, +7.2%]，是当前结论。"
+    miss = "现行程序下 S1 的秩 1→2 增益为 +3.5% [+0.7%, +7.2%]，已被取代。"
+    ok = bool(scan_text_docs44(hit, "h")) and not scan_text_docs44(miss, "m")
+    two = scan_text_docs44(hit + "\n\n" + miss, "t")
+    ok = ok and bool(two)
+    print("docs44 条目自检：" + ("通过（命中/不误伤/段落级）" if ok else "未通过"))
+    return ok
 
 
 def scan_repo():
@@ -151,10 +201,21 @@ if __name__ == "__main__":
     if not selftest():
         print("检查器自身未通过自检，拒绝给出扫描结论（CLAUDE.md §10）")
         sys.exit(2)
+    if not selftest_docs44():
+        sys.exit(2)
+    # docs/44 并入强制路径（2026-10-17）。此前 docs44 条目只在 `--docs44` 下才影响退出码，
+    # 默认运行只打印条数——于是 docs/35 里有 9 处现行程序数字时，默认门禁仍然 exit 0。
+    # 这与「make_figures --check 的 PASS 不覆盖 §3.3 表」同形：绿灯不能当作
+    # 它没有覆盖的东西也被检查过。现在两条路径都强制，--docs44 仅保留作明细开关。
+    pend = scan_repo_docs44()
     rows = scan_repo()
-    print(f"\n登记的撤回条目 {len(RETRACTED)} 条，前向主张文档 {len(LIVE_CLAIM)} 个；扫描结果：{len(rows)} 处需处理\n")
+    print(f"登记的撤回条目 {len(RETRACTED)} 条 + 旧程序取代条目 {len(SUPERSEDED_DOCS44)} 条；"
+          f"前向主张文档 {len(LIVE_CLAIM)} 个")
+    print(f"扫描结果：撤回数字 {len(rows)} 处；旧程序数字未加标签/未替换 {len(pend)} 处\n")
     for rel, line, what, why in sorted(rows):
         print(f"  {rel}:{line}  {what}（{why}）")
-    if rows:
-        print("\n处理方式：删掉，或把它放进一个声明了撤回语境的段落。")
-    sys.exit(1 if rows else 0)
+    for rel, line, what, why in sorted(pend):
+        print(f"  [旧程序] {rel}:{line}  {what}（{why}）")
+    if rows or pend:
+        print("\n处理方式：删掉，或把它放进一个声明了撤回/取代语境的段落。")
+    sys.exit(1 if (rows or pend) else 0)
