@@ -7,6 +7,10 @@
 | `docs29_prereg.md` | `docs/29-paired-conflict.md` | 配对矛盾的候选解释与判别观测量 |
 | `docs41_prereg.md` | `docs/41-independence-audit.md` | 14/15 符号检验的候选独立单位，主单位在看结果前定死 |
 | `docs42_prereg.md` | `docs/42-folding-rank.md` | 折叠侧定秩的单位、程序、功效门槛与「可判定」的判据 |
+| `docs43_prereg.md` | `docs/43-overshoot-binding.md` | 结合矩阵是否落在定秩程序的高信噪比过冲区；「被抬高 / 稳健 / 无法评估」的判据 |
+
+注：`docs43` 的预先登记规则事后被发现有缺陷（其「相容点」用秩 0 的 CV 误差，只由总方差决定，
+路径上所有点都相容），作者照规则报告判决、把缺陷与事后补充单独标注，**没有改规则**。
 
 每份配一个 `*_lock.json`，记录 sha256。对应的分析脚本在入口处断言该哈希，改动一个字节即中止。
 **这些文件的工作副本在 `cache/`（被 .gitignore 排除），此处是为公开核对而做的归档副本。**
