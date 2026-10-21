@@ -96,6 +96,7 @@ LIVE_CLAIM = [
     "docs/30-manuscript.md",
     "docs/32-methods-paper.md",
     "docs/35-paper-draft.md",
+    "docs/48-paper-v2.md",   # D-096 重写稿（警示性发现）
     "README.md",     # 公开仓库的第一眼；docs/41 审计时 p=0.00049 就写在这里
 ]
 
