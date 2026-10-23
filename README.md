@@ -68,12 +68,13 @@
 `docs/25-cr9114.md`、`docs/27-tsuboyama.md`、`docs/36-references.md` 及各脚本的 provenance 注释；
 需自行下载后放入 `cache/`。
 
-三道自动门禁（改任何正文或图之前后都该跑）：
+四道自动门禁（改任何正文或图之前后都该跑）：
 
 ```bash
 python3 analysis/check_retracted.py     # 已撤回的数字不得在主张文档里复活
 python3 analysis/check_scale_table.py   # 化学标度表与重算值一致
 python3 analysis/make_figures.py --check  # 图里的汇总量与正文一致
+python3 analysis/check_provenance.py    # 出处表里的每个数字真的出现在所引文档里
 ```
 
 ## 许可
