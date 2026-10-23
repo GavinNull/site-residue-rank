@@ -102,18 +102,36 @@ LIVE_CLAIM = [
 
 
 def paragraphs(text):
-    """返回 (起始行号, 段落文本)。段落按空行切分。"""
+    """返回 (起始行号, 判定单元文本)。
+
+    段落按空行切分，**但 markdown 表格的每一行单独成为一个判定单元**：
+    一张整表是一个段落，于是表里任何一处的撤回标记会豁免整张表——
+    出处表一行一个数字、最容易含已撤回的数，却恰好是被豁免得最彻底的地方。
+    （发现于 docs/32 v3 的更新：作者在逐行标注撤回语境时指出了这一局限；
+    已验证：第一行带「已撤回」、第二行裸写 p = 0.00049 的表，旧逻辑命中数为 0。）
+    表格的表头行与分隔行不含数字主张，照常处理（不含登记的数字就不会命中）。
+    """
     out, buf, start = [], [], 1
+
+    def flush():
+        nonlocal buf
+        if not buf:
+            return
+        if all(ln.lstrip().startswith("|") for ln in buf):
+            for k, ln in enumerate(buf):
+                out.append((start + k, ln))
+        else:
+            out.append((start, "\n".join(buf)))
+        buf = []
+
     for n, line in enumerate(text.splitlines(), 1):
         if line.strip():
             if not buf:
                 start = n
             buf.append(line)
-        elif buf:
-            out.append((start, "\n".join(buf)))
-            buf = []
-    if buf:
-        out.append((start, "\n".join(buf)))
+        else:
+            flush()
+    flush()
     return out
 
 
@@ -191,6 +209,17 @@ def selftest():
     c = scan_text(two, "<synthetic-two-para>")
     if not c:
         print("自检失败：标记作用域是全文而不是段落 —— 一处「撤回」会豁免整个文件")
+        ok = False
+    # 表格：一行里的撤回标记不得豁免同一张表的其他行（docs/32 v3 更新时发现的盲区）
+    tbl_bad = ("| 项 | 值 |\n|---|---|\n| 旧结论 | 已撤回：p = 0.00049 |\n"
+               "| 当前结论 | 我们得到 p = 0.00049，非常显著 |\n")
+    tbl_ok = ("| 项 | 值 |\n|---|---|\n| 旧结论 | 已撤回：p = 0.00049 |\n"
+              "| 另一条旧结论 | 已作废的 −5.54% |\n")
+    if not scan_text(tbl_bad, "<synthetic-table-bad>"):
+        print("自检失败：表格一行的撤回标记豁免了同表其他行（整表被当成一个段落）")
+        ok = False
+    if scan_text(tbl_ok, "<synthetic-table-ok>"):
+        print("自检失败：每行都带撤回标记的表被误报")
         ok = False
     print("自检通过：命中 / 不误伤 / 标记作用域为段落级" if ok else "自检未通过")
     return ok
